@@ -3,6 +3,7 @@ import { Typography } from '@material-ui/core';
 type IfDrCrProps = {
   amount: number,
   asCr: boolean,
+  asSum?: boolean,
   style?: {[key: string]: any},
   [key: string]: any
 }
@@ -15,7 +16,7 @@ const currencyNumFmt = {
   currencyDisplay: 'code'
 };
 
-export default function DrCr({amount, asCr, style, ...other}: IfDrCrProps) {
+export default function DrCr({amount, asCr, asSum, style, ...other}: IfDrCrProps) {
   let n = asCr ? -amount : amount;
   // const neg = n < 0; TODO if using '()' need to align digits between neg and non-neg values
   // if (neg) n = -n;
@@ -25,5 +26,8 @@ export default function DrCr({amount, asCr, style, ...other}: IfDrCrProps) {
   // if (neg) s = `(${s})`
   style = style || {};
   style.textAlign = 'right';
+  if (asSum) {
+    style.textDecoration = 'underline';
+  }
   return (<Typography {...other} style={style}>{s}</Typography>);
 }
