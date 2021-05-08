@@ -1,7 +1,7 @@
 import { ajax } from 'rxjs/ajax';
 import { ReplaySubject, Subject } from 'rxjs';
-import { finalize, mergeMap, retryWhen } from 'rxjs/operators';
-import { throwError, timer } from 'rxjs';
+// import { finalize, mergeMap, retryWhen } from 'rxjs/operators';
+// import { throwError, timer } from 'rxjs';
 
 type AccountSvc = {
   id: string,
@@ -38,7 +38,17 @@ export const Categories: {[key: number]: Category} = Object.freeze({ // WARN: se
   5: {id: 5, name:'expenses', isCredit: false}
 });
 
-type Account = {
+type AccountChange = {
+  name?: string,
+  num?: number,
+  isCredit?: boolean,
+  desc?: string,
+  balance?: number
+  balanceRange?: number,
+  children?: Account[]
+};
+
+export type Account = {
   id: string,
   createdAt: Date,
   userId: string,
@@ -53,7 +63,8 @@ type Account = {
   children: Account[]
   tmpCategoryId?: number, // tmp until inherit parent
   tmpParentId?: string, // tmp until inherit parent
-  svcIsCredit?: boolean // service value
+  svcIsCredit?: boolean, // service value
+  changes$: Subject<AccountChange> // posts "before" props
 };
 
 type AccountsStore = {
@@ -74,7 +85,8 @@ const fromSvc = (o: AccountSvc): Account => ({
   children: [],
   tmpCategoryId: o.categoryId,
   tmpParentId: o.parentId,
-  svcIsCredit: o.isCredit
+  svcIsCredit: o.isCredit,
+  changes$: new Subject<AccountChange>()
 });
 
 // TODO when serving from service: new URL(document.URL)....
@@ -101,6 +113,8 @@ const baseUrl = 'http://localhost:5000/api/v1';
 //     finalize(() => console.log('We are done!'))
 //   );
 
+let accountsLoad$: Subject<void>;
+export const accountsStore: AccountsStore = {}
 export const generalAccounts: {[key: number]: Account} = {};
 
 const addToParent = (acct: Account) => {
@@ -117,13 +131,17 @@ const addToParent = (acct: Account) => {
   arr.push(acct);
 };
 
-// const removeFromParent = (acct: Account) => {
-//   const children = acct.parent?.children;
-//   if (!children) return;
-//   const i = children.indexOf(acct);
-//   if (i < 0) throw new Error(`account ${acct.id}: not in parent children array`);
-//   children.splice(i, 1);
-// };
+const removeFromParent = (acct: Account) => {
+  const children = acct.parent?.children;
+  if (!children) return;
+  const i = children.indexOf(acct);
+  if (i < 0) {
+    console.error(`account ${acct.id}: not in parent children array`);
+    return;
+  }
+  children.splice(i, 1);
+  return;
+};
 
 const inheritParent = (acct: Account) => {
   if (acct.tmpCategoryId) { // init general account
@@ -158,8 +176,6 @@ const initStore = (accts: AccountSvc[]) => {
   }
 };
 
-let accountsLoad$: Subject<void>;
-
 export const accountsLoad = (): Subject<void> => {
   if (accountsLoad$) return accountsLoad$;
   accountsLoad$ = new ReplaySubject<void>(1);
@@ -182,4 +198,33 @@ export const accountsLoad = (): Subject<void> => {
   return accountsLoad$;
 };
 
-export const accountsStore: AccountsStore = {}
+export const accountPatch = (acct: Account, patch: AccountChange) => {
+  const before: AccountChange = {};
+  if ('balanceRange' in patch && acct.balanceRange !== patch.balanceRange) {
+    before.balanceRange = acct.balanceRange;
+    acct.balanceRange = patch.balanceRange!; // TODO should this be done now?
+    // TODO is there a use case for both this and svc prop simultaneous change????
+  }
+  let svcProp = false;
+
+  // TODO other props
+
+  if (!svcProp) { // no svc patch needed
+    acct.changes$.next(before);
+  } else {
+    // TODO ajax
+  }
+};
+
+export const accountDelete = (acct: Account) => {
+  const parent = acct.parent;
+
+  // TODO replace with terminate
+
+  if (parent) {
+    const before = {children: [...parent.children]};
+    removeFromParent(acct);
+    parent.changes$.next(before);
+  }
+  acct.changes$.complete(); // notify deleted
+};
