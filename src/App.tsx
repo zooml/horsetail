@@ -1,7 +1,11 @@
 import CssBaseline from "@material-ui/core/CssBaseline";
+import { withStyles } from "@material-ui/core/styles";
+import React from "react";
 import './App.css';
 import NavBar from './components/NavBar';
-import NestedList from './components/NestedList'
+import SignIn from './components/SignIn';
+import { GlobalCss } from "./GlobalCss";
+// import NestedList from './components/NestedList'
 // import AccountsTree from './components/AccountsTree'
 //import DocumentsTable, {data, columns} from './components/DocumentsTable';
 //import VList from './components/VList'
@@ -11,8 +15,10 @@ function App() {
   return (
     <div className="App">
       <CssBaseline/>
+      <GlobalCss />
       <NavBar/>
-      <NestedList />
+      <SignIn/>
+      {/* <NestedList /> */}
       {/* <AccountsTree /> */}
       {/* <DocumentsTable data={data} columns={columns} /> */}
       {/* <VList/> */}

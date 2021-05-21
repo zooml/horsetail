@@ -1,20 +1,38 @@
 import { ajax } from 'rxjs/ajax';
 import { ReplaySubject, Subject } from 'rxjs';
+import { baseUrl } from '../utils/config';
+import { BaseSvc } from './base';
 // import { finalize, mergeMap, retryWhen } from 'rxjs/operators';
 // import { throwError, timer } from 'rxjs';
 
 type AccountSvc = {
   id: string,
-  createdAt: Date
-  userId: string,
+  oId: string,
+  uId: string,
   name: string,
   num: number,
-  isCredit?: boolean, // required if different than parent
-  desc?: string,
-  parentId?: string, // required if not top-level
-  categoryId?: number,
-  balance?: number, // required if leaf
-};
+  begAt: Date,
+  isCr?: boolean, // required if different than parent
+  note?: string,
+  paId?: string, // required if not top-level
+  catId?: number,
+  closes: [
+    {
+      id: number,
+      fund: number,
+      bal: number
+    }
+  ],
+  suss: [
+    {
+      begAt: Date,
+      bUId: string,
+      endAt?: Date,
+      eUId?: string,
+      note?: string
+    }
+  ]
+} & BaseSvc;
 
 export const CategoryIds = Object.freeze({ // WARN: service dep
   ASSET: 1,
@@ -38,34 +56,29 @@ export const Categories: {[key: number]: Category} = Object.freeze({ // WARN: se
   5: {id: 5, name:'expenses', isCredit: false}
 });
 
-type AccountChange = {
+type AccountChg = {
   name?: string,
   num?: number,
-  isCredit?: boolean,
-  desc?: string,
-  balance?: number
-  balanceRange?: number,
+  isCr?: boolean,
+  note?: string,
   children?: Account[]
 };
 
 export type Account = {
   id: string,
-  createdAt: Date,
-  userId: string,
+  uId: string,
   name: string,
   num: number,
-  category: Category,
-  isCredit: boolean,
-  desc?: string,
+  cat: Category,
+  isCr: boolean,
+  note?: string,
   parent?: Account, // null if general acct
-  balance?: number // required iif leaf, this is the "close" balance
-  balanceRange: number,
   children: Account[]
-  tmpCategoryId?: number, // tmp until inherit parent
-  tmpParentId?: string, // tmp until inherit parent
-  svcIsCredit?: boolean, // service value
-  changes$: Subject<AccountChange> // posts "before" props
-};
+  tmpCatId?: number, // tmp until inherit parent
+  tmpPaId?: string, // tmp until inherit parent
+  svcIsCr?: boolean, // service value
+  chg$: Subject<AccountChg> // posts "before" props
+} & BaseSvc;
 
 type AccountsStore = {
   [key: string]: Account
@@ -73,25 +86,21 @@ type AccountsStore = {
 
 const fromSvc = (o: AccountSvc): Account => ({
   id: o.id,
-  createdAt: o.createdAt,
-  userId: o.userId,
+  uId: o.uId,
   name: o.name,
   num: o.num,
-  category: Categories[CategoryIds.ASSET], // default, fix in inherit parent
-  isCredit: false, // default, fix in inherit parent
-  desc: o.desc,
-  balance: o.balance,
-  balanceRange: 0,
+  cat: Categories[CategoryIds.ASSET], // default, fix in inherit parent
+  isCr: false, // default, fix in inherit parent
+  note: o.note,
   children: [],
-  tmpCategoryId: o.categoryId,
-  tmpParentId: o.parentId,
-  svcIsCredit: o.isCredit,
-  changes$: new Subject<AccountChange>()
+  tmpCatId: o.catId,
+  tmpPaId: o.paId,
+  svcIsCr: o.isCr,
+  at: o.at,
+  upAt: o.upAt,
+  v: o.v,
+  chg$: new Subject<AccountChg>()
 });
-
-// TODO when serving from service: new URL(document.URL)....
-//const baseUrl = `${new URL(document.URL).origin}/api/v1`;
-const baseUrl = 'http://localhost:5000/api/v1';
 
 // https://gist.github.com/tanem/011a950b93a89e43cfc335f617dbb230
 // const genericRetryStrategy = ({
@@ -144,26 +153,26 @@ const removeFromParent = (acct: Account) => {
 };
 
 const inheritParent = (acct: Account) => {
-  if (acct.tmpCategoryId) { // init general account
-    if (acct.tmpParentId) throw new Error(`account ${acct.id}: category on non-general account`);
-    const category = Categories[acct.tmpCategoryId];
-    if (!category) throw new Error(`account ${acct.id}: invalid category: ${acct.tmpCategoryId}`);
-    delete acct.tmpCategoryId;
-    acct.category = category;
-    acct.isCredit = category.isCredit;
+  if (acct.tmpCatId) { // init general account
+    if (acct.tmpPaId) throw new Error(`account ${acct.id}: category on non-general account`);
+    const category = Categories[acct.tmpCatId];
+    if (!category) throw new Error(`account ${acct.id}: invalid category: ${acct.tmpCatId}`);
+    delete acct.tmpCatId;
+    acct.cat = category;
+    acct.isCr = category.isCredit;
     if (generalAccounts[category.id]) throw new Error(`account ${acct.id}: general account already exists: ${category.name}`);
     generalAccounts[category.id] = acct;
-  } else if (acct.tmpParentId) { // init non-general account
-    const parent = accountsStore[acct.tmpParentId];
-    if (!parent) throw new Error(`account ${acct.id}: invalid parent id: ${acct.tmpParentId}`);
-    delete acct.tmpParentId;
+  } else if (acct.tmpPaId) { // init non-general account
+    const parent = accountsStore[acct.tmpPaId];
+    if (!parent) throw new Error(`account ${acct.id}: invalid parent id: ${acct.tmpPaId}`);
+    delete acct.tmpPaId;
     inheritParent(parent); // recurse to ancestors
     acct.parent = parent;
-    acct.category = parent.category;
-    if ('svcIsCredit' in acct) {
-      acct.isCredit = acct.svcIsCredit || false; // false needed for ts
+    acct.cat = parent.cat;
+    if ('svcIsCr' in acct) {
+      acct.isCr = acct.svcIsCr || false; // false needed for ts
     } else {
-      acct.isCredit = parent.isCredit;
+      acct.isCr = parent.isCr;
     }
     addToParent(acct);
   }
@@ -198,19 +207,14 @@ export const accountsLoad = (): Subject<void> => {
   return accountsLoad$;
 };
 
-export const accountPatch = (acct: Account, patch: AccountChange) => {
-  const before: AccountChange = {};
-  if ('balanceRange' in patch && acct.balanceRange !== patch.balanceRange) {
-    before.balanceRange = acct.balanceRange;
-    acct.balanceRange = patch.balanceRange!; // TODO should this be done now?
-    // TODO is there a use case for both this and svc prop simultaneous change????
-  }
+export const accountPatch = (acct: Account, patch: AccountChg) => {
+  const before: AccountChg = {};
   let svcProp = false;
 
   // TODO other props
 
   if (!svcProp) { // no svc patch needed
-    acct.changes$.next(before);
+    acct.chg$.next(before);
   } else {
     // TODO ajax
   }
@@ -224,7 +228,7 @@ export const accountDelete = (acct: Account) => {
   if (parent) {
     const before = {children: [...parent.children]};
     removeFromParent(acct);
-    parent.changes$.next(before);
+    parent.chg$.next(before);
   }
-  acct.changes$.complete(); // notify deleted
+  acct.chg$.complete(); // notify deleted
 };

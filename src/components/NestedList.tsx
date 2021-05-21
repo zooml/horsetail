@@ -66,16 +66,16 @@ const AccountItem = ({acct, level}: {acct: Account, level: number}) => {
     setOpen(!open);
   };
   useEffect(() => {
-    const s$ = acct.changes$.subscribe({next: () => setChanged(!changed)});
+    const s$ = acct.chg$.subscribe({next: () => setChanged(!changed)});
     return () => s$.unsubscribe();
-  });
+  }, []);
   return (
     <ListItem selected>
       {isParent && (open ? <ExpandLess onClick={handleClick} /> : <ExpandMore onClick={handleClick} />)}
       <ButtonBase focusRipple className={classes.acct}>
         <Typography className={classes.acctNum}>{acct.num}</Typography>
         <Typography className={classes.acctNum} style={{flex: '1', textAlign: 'left'}}>{acct.name}</Typography>
-        <DrCr amount={acct.balanceRange} asCr={acct.isCredit} asSum={isParent} className={classes.drCr} />
+        <DrCr amount={10} asCr={acct.isCr} asSum={isParent} className={classes.drCr} />
       </ButtonBase>
     </ListItem>
 )};
@@ -86,7 +86,7 @@ export default function AccountList() {
   useEffect(() => {
     const s$ = accountsLoad().subscribe({next: () => setLoaded(true)});
     return () => s$.unsubscribe();
-  });
+  }, []);
   return (
     <List
       component="nav"
@@ -108,7 +108,7 @@ export  function NestedList() {
       next: () => console.log('loaded') // TODO render
     });
     return () => s$.unsubscribe();
-  });
+  }, []);
 
 
   // TODO move expand icon to left side: https://stackoverflow.com/questions/57459133/how-to-change-expansion-panel-icon-position-to-the-left
