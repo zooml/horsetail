@@ -1,27 +1,40 @@
-import React, { ChangeEvent } from 'react';
+import React, { ChangeEvent, useEffect, useState } from 'react';
 import { TextField } from '@material-ui/core';
-import { FieldOnValueChg } from './formctl';
+import FormCtl, { FieldOnValueChg } from './formctl';
 
 type Props = {
-  autoFocus?: boolean;
-  onValueChg?: FieldOnValueChg;
+  formCtl: FormCtl;
+  fieldKey: string;
+  [key: string]: any;
 };
 
-const emailRegex = /^(([^<>()[\]\.,;:\s@\"]+(\.[^<>()[\]\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\.,;:\s@\"]+\.)+[^<>()[\]\.,;:\s@\"]{2,})$/;
+const emailRegex = /^(([^<>()[\].,;:\s@"]+(\.[^<>()[\].,;:\s@"]+)*)|(".+"))@(([^<>()[\].,;:\s@"]+\.)+[^<>()[\].,;:\s@"]{2,})$/;
 
 const validate = (s: string) => emailRegex.test(s);
 
-const EmailField = ({autoFocus, onValueChg}: Props) => {
-  const [valid, setValid] = React.useState(false);
+type Ons = {valueChg?: FieldOnValueChg};
+
+const EmailField = ({formCtl, fieldKey, ...other}: Props) => {
+  const [isError, setIsError] = useState(false);
+  const [ons,] = useState({} as Ons);
+  useEffect(() => {
+    ons.valueChg = formCtl.addField(fieldKey);
+    return () => formCtl.removeField(fieldKey);
+  } , [ons, formCtl, fieldKey]);
   const onChange = (event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>) => {
-    const value = event.target.value;
-    const v = validate(value);
-    setValid(v);
-    if (onValueChg) onValueChg(v ? value : undefined);
+    const v = event.target.value;
+    let isV = !!v;
+    if (isV) { // non-empty
+      isV = validate(v);
+      setIsError(!isV);
+    } else { // value is not valid but don't show error (it's obvious to user)
+      setIsError(false);
+    }
+    if (ons.valueChg) ons.valueChg(isV ? v : undefined);
   };
   return (
-    <TextField margin="dense" id="email" label="Email" type="text"
-      autoFocus={autoFocus} error={!valid} required fullWidth
+    <TextField margin="dense" id="fieldxxxx" label="Email" type="text"
+      {...other} error={isError} required fullWidth
       onChange={onChange}
       inputProps={{autoComplete: 'new-email'}} />
   );

@@ -56,7 +56,23 @@ export const get$ = (): Subject<User> => {
   return user$;
 };
 
-export const signIn = (email: string, pswd: string) => {
+export type Creds = {
+  email: string;
+  pswd: string;
+};
+
+export const register = ({email, pswd}: Creds) => {
+  if (userEmail) {
+    console.log('still signed in'); // TODO warn
+    return;
+  }
+  ajax.post<void>(`${baseUrl}/users`, {email, pswd}) // TODO retry
+    .subscribe({
+      next: () => {}
+    });
+};
+
+export const signIn = ({email, pswd}: Creds) => {
   if (userEmail) {
     console.log(`already signed in${userEmail !== email ? ' under different email' : ''}`); // TODO err msg
     return;
