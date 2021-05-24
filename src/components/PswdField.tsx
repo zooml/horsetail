@@ -1,6 +1,6 @@
 import { ChangeEvent, useEffect, useState } from 'react';
 import { TextField } from '@material-ui/core';
-import FormCtl, { FieldOnValueChg } from './formctl';
+import FormCtl from './formctl';
 
 type Props = {
   formCtl: FormCtl;
@@ -19,29 +19,25 @@ const validate = (s: string) => {
     && /[^a-zA-Z0-9]/.test(s);
 }
 
-type Ons = {valueChg?: FieldOnValueChg};
-
 const PswdField = ({formCtl, fieldKey, isReg, ...other}: Props) => {
   const [isError, setIsError] = useState(false);
-  const [ons,] = useState({} as Ons);
   useEffect(() => {
-    ons.valueChg = formCtl.addField(fieldKey);
+    formCtl.addField(fieldKey);
     return () => formCtl.removeField(fieldKey);
-  } , [ons, formCtl, fieldKey]);
+  } , [formCtl, fieldKey]);
   const onChg = (event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>) => {
     const v = event.target.value;
-    let isV;
+    let isV = !!v; // default for not isReg (never show error)
     if (isReg) { // if registration then full validate
       isV = validate(v);
       setIsError(!isV);
-    } else { // never show error
-      isV = !!v;
     }
-    if (ons.valueChg) ons.valueChg(isV ? v : undefined);
+    formCtl.onValueChg(fieldKey, isV ? v : undefined);
   };
   return (
-    <TextField margin="dense" id="pswd" label="Password" type="password"
+    <TextField margin="dense" label="Password" type="password"
       {...other} error={isError} required fullWidth 
+      autoComplete="new-password"
       onChange={onChg}
       helperText={isReg ? helperText : ''} />
   );

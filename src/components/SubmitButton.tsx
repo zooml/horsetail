@@ -1,5 +1,5 @@
 import { Button } from "@material-ui/core";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import FormCtl from "./formctl";
 
 type Props = {
@@ -8,10 +8,13 @@ type Props = {
 
 const SubmitButton = ({formCtl}: Props) => {
   const [allAreValid, setAllAreValid] = useState(formCtl.allAreValid());
-  useState(formCtl.setOnAllAreValid(valid => setAllAreValid(valid)));
+  useEffect(() => {
+    formCtl.setOnAllAreValid(valid => setAllAreValid(valid));
+    return () => formCtl.clearOnAllAreValid();
+  }, [formCtl]);
   return (
     <Button disabled={!allAreValid} type="submit" color="primary" variant="contained">
-      Enter
+      Apply
     </Button>
   );
 };

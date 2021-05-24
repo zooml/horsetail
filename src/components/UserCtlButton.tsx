@@ -1,11 +1,11 @@
 import { ChangeEvent, FormEvent, useState } from 'react';
-import { Button, Dialog, DialogActions, Tabs, Tab } from '@material-ui/core';
+import { Button, Dialog, Tabs, Tab } from '@material-ui/core';
 import * as user from '../models/user';
 import FormCtl from './formctl';
 import EmailField from './EmailField';
 import PswdField from './PswdField';
 import { Creds } from '../models/user';
-import SubmitButton from './SubmitButton';
+import FormActions from './FormActions';
 
 type CredsPanelProps = {
   formCtl: FormCtl;
@@ -16,10 +16,8 @@ type CredsPanelProps = {
 const CredsPanel = ({formCtl, showPswd, isReg}: CredsPanelProps) => {
   return (
     <div>
-        <EmailField autoFocus formCtl={formCtl} fieldKey={'email'} />
-        { showPswd &&
-          <PswdField formCtl={formCtl} fieldKey={'pswd'} isReg={isReg} />
-        }
+        <EmailField autoFocus formCtl={formCtl} fieldKey="email" />
+        { showPswd && <PswdField formCtl={formCtl} fieldKey="pswd" isReg={isReg} /> }
     </div>
   );
 };
@@ -50,13 +48,11 @@ const UserCtlDialog = ({open, onClose}: UserCtlDialogProps) => {
         <Tab label="Register" />
         <Tab label="Reset Password" />
       </Tabs>
-      <form noValidate onSubmit={onSubmit}>
+      <form noValidate onSubmit={onSubmit} >
         { tabIdx === 0 && <CredsPanel formCtl={formCtl} showPswd /> }
         { tabIdx === 1 && <CredsPanel formCtl={formCtl} showPswd isReg /> }
         { tabIdx === 2 && <CredsPanel formCtl={formCtl} /> }
-        <DialogActions>
-          <SubmitButton formCtl={formCtl} />
-        </DialogActions>
+        <FormActions formCtl={formCtl} onCancel={onClose} />
       </form>
     </Dialog>
   );
