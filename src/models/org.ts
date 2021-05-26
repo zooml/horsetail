@@ -3,6 +3,7 @@ import { ajax } from 'rxjs/ajax';
 import { baseUrl } from '../utils/config';
 import { ReplaySubject, Subject } from 'rxjs';
 import * as user from './user';
+import retrier from './retrier';
 
 type OrgSvc = BaseSvc & {
   id: string,
@@ -24,44 +25,54 @@ const fromSvc = (o: OrgSvc): Org => ({
 });
 
 let all$ = new ReplaySubject<All<Org>>(1);
-let userSubscribed = false;
+let hasAll =false;
 let org$ = new ReplaySubject<Org>(1);
-let orgSelected = false;
+let oId = '';
 
-export const getAll$ = () => {
-  if (!userSubscribed) {
-    userSubscribed = true;
-    user.get$().subscribe({
-      next: user =>
-        ajax.getJSON<OrgSvc[]>(`${baseUrl}/orgs`)
-          .subscribe({
-            next: orgs => {
-              all$.next(orgs.map(fromSvc).reduce((o: All<Org>, v: Org) => {
-                o[v.id] = v;
-                return o;
-              }, {chg$: new Subject<AllChg<Org>>()} as All<Org>));
-            }
-          }),
-      complete: () => {
-        const tmp$ = all$;
-        all$ = new ReplaySubject<All<Org>>(1);
-        tmp$.complete();
-      }
-    });
-  }
-  return all$;
-};
-
-export const set = (id: string) => {
-  if (orgSelected) {
-    orgSelected = false;
+const clearOrg = () => {
+  if (oId) {
+    oId = '';
     const tmp$ = org$;
     org$ = new ReplaySubject<Org>(1);
     tmp$.complete();
   }
-  ajax.getJSON<OrgSvc>(`${baseUrl}/orgs/${id}`) // TODO retry
+};
+
+export const getAll$ = () => {
+  if (hasAll) return all$;
+  hasAll = true;
+  user.get$().subscribe({ // user signed in event
+    next: user =>
+      ajax.getJSON<OrgSvc[]>(`${baseUrl}/orgs`)
+        .pipe(retrier())
+        .subscribe({
+          next: orgs => {
+            all$.next(orgs.map(fromSvc).reduce((o: All<Org>, v: Org) => {
+              o[v.id] = v;
+              return o;
+            }, {chg$: new Subject<AllChg<Org>>()} as All<Org>));
+          }
+        }),
+    complete: () => {
+      clearOrg();
+      const tmp$ = all$;
+      all$ = new ReplaySubject<All<Org>>(1);
+      hasAll = false;
+      tmp$.complete();
+    }
+  });
+  return all$;
+};
+
+export const get$ = () => org$;
+
+export const load = (id: string) => {
+  clearOrg();
+  ajax.getJSON<OrgSvc>(`${baseUrl}/orgs/${id}`)
+    .pipe(retrier())
     .subscribe({
       next: org => {
+        oId = id;
         org$.next(fromSvc(org));
       }
     });

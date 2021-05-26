@@ -16,7 +16,10 @@ export const GlobalCss = withStyles({
     },
     '.MuiDialogActions-root': {
       paddingTop: '1rem'
-    }
+    },
+    '.MuiButton-root': {
+      borderRadius: '3em'
+    },
   },
 })(() => null);
 

@@ -6,6 +6,9 @@ type Props = {
   formCtl: FormCtl;
 };
 
+// TODO on submit via keyboard:
+// https://stackoverflow.com/questions/66888248/how-do-i-programatically-show-ripple-effect-with-material-ui
+
 const SubmitButton = ({formCtl}: Props) => {
   const [allAreValid, setAllAreValid] = useState(formCtl.allAreValid());
   useEffect(() => {

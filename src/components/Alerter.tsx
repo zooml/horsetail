@@ -1,11 +1,20 @@
 import { Button, IconButton, Snackbar } from "@material-ui/core";
 import React, { useEffect, useRef, useState } from "react";
 import CloseIcon from '@material-ui/icons/Close';
-import * as alert from '../modelviews/alert';
+import * as alert from '../models/alert';
+
+const severity = (post: alert.Alert): string => {
+  switch (post.severity) {
+    case 0: return 'error';
+    case 1: return 'warning';
+    case 2: return 'success';
+    default: return 'info';
+  }
+}
 
 const Alerter = () => {
   const [open, setOpen] = useState(false);
-  const [post, setPost] = useState<alert.Alert>({message: ''});
+  const [post, setPost] = useState<alert.Alert>({severity: 3, message: ''});
   const showing = useRef(false);
   const show = (vis: boolean) => { // call here instead of setOpen
     if (vis) showing.current = true;
@@ -43,7 +52,7 @@ const Alerter = () => {
     <Snackbar
       anchorOrigin={{
         vertical: 'bottom',
-        horizontal: 'right',
+        horizontal: 'center',
       }}
       open={open}
       autoHideDuration={6000}

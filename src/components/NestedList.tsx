@@ -58,7 +58,7 @@ const AccountChildItems = ({acct, level}: {acct: Account, level: number}) => {
 }
 
 const AccountItem = ({acct, level}: {acct: Account, level: number}) => {
-  const isParent = !!acct.children.length;
+  const isParent = !!acct.chAccts.length;
   const classes = useItemStyles({level});
   const [open, setOpen] = useState(false);
   const [changed, setChanged] = useState(false);

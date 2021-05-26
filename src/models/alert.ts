@@ -6,6 +6,7 @@ export type Action = {
 };
 
 export type Alert = {
+  severity: number; // 0: error, 1: warning, 2: success, 3: info
   message: string;
   action?: Action;
 };
