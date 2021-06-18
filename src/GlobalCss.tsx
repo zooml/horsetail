@@ -20,6 +20,9 @@ export const GlobalCss = withStyles({
     '.MuiButton-root': {
       borderRadius: '3em'
     },
+    '.pubContent': {
+      backgroundImage: 'url(/static/img/horsetail-grass.jpg)'
+    }
   },
 })(() => null);
 

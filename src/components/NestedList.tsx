@@ -14,7 +14,7 @@ import ExpandLess from '@material-ui/icons/ExpandLess';
 import ExpandMore from '@material-ui/icons/ExpandMore';
 import StarBorder from '@material-ui/icons/StarBorder';
 import DrCr from './DrCr';
-import {accountsLoad, Account, accountsStore} from '../models/account'
+import { Account } from '../models/account';
 import Typography from '@material-ui/core/Typography';
 import ButtonBase from '@material-ui/core/ButtonBase';
 
@@ -58,7 +58,7 @@ const AccountChildItems = ({acct, level}: {acct: Account, level: number}) => {
 }
 
 const AccountItem = ({acct, level}: {acct: Account, level: number}) => {
-  const isParent = !!acct.chAccts.length;
+  const isParent = !!acct.subs.length;
   const classes = useItemStyles({level});
   const [open, setOpen] = useState(false);
   const [changed, setChanged] = useState(false);
@@ -84,15 +84,15 @@ export default function AccountList() {
   const classes = useListStyles();
   const [, setLoaded] = useState(false);
   useEffect(() => {
-    const s$ = accountsLoad().subscribe({next: () => setLoaded(true)});
-    return () => s$.unsubscribe();
+    // const s$ = loadAll().subscribe({next: () => setLoaded(true)});
+    // return () => s$.unsubscribe();
   }, []);
   return (
     <List
       component="nav"
       className={classes.root}
     >
-      {Object.values(accountsStore).map(acct => <AccountItem key={acct.id} acct={acct} level={0} />)}
+      {/* {Object.values(accountsStore).map(acct => <AccountItem key={acct.id} acct={acct} level={0} />)} */}
     </List>
   );
 }
@@ -102,13 +102,13 @@ export  function NestedList() {
   const [open, setOpen] = React.useState(true);
   const handleClick = () => {
     setOpen(!open);
-  };
-  useEffect(() => {
-    const s$ = accountsLoad().subscribe({
-      next: () => console.log('loaded') // TODO render
-    });
-    return () => s$.unsubscribe();
-  }, []);
+  }; 
+  // useEffect(() => {
+  //   const s$ = loadAll().subscribe({
+  //     next: () => console.log('loaded') // TODO render
+  //   });
+  //   return () => s$.unsubscribe();
+  // }, []);
 
 
   // TODO move expand icon to left side: https://stackoverflow.com/questions/57459133/how-to-change-expansion-panel-icon-position-to-the-left

@@ -1,12 +1,12 @@
 import { ChangeEvent, useEffect, useState } from 'react';
 import { TextField } from '@material-ui/core';
-import FormCtl from './formctl';
+import FormCtl from '../formctl';
 
 type Props = {
   formCtl: FormCtl;
   fieldKey: string;
   isReg?: boolean;
-  [key: string]: any;
+  [k: string]: any;
 };
 
 const helperText = "at least: 1 a-z, 1 A-Z, 1 digit, 1 special, 8 chars";

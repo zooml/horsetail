@@ -1,139 +1,184 @@
-import { BaseMdl, BaseSvc } from './base'
+import * as base from './base'
 import { ajax } from 'rxjs/ajax';
 import { baseUrl } from '../utils/config';
-import { ReplaySubject, Subject } from 'rxjs';
-import retrier from './retrier';
+import { ReplaySubject, Subject, Subscription } from 'rxjs';
+import retrier, { RequestError } from './retrier';
+import * as alert from '../models/alert';
+import { Get, Base, Creds, Post } from '../api/users';
+import * as descs from './descs';
 
-type UserSvc = BaseSvc & {
-  id: string,
-  email: string,
-  fName: string,
-  lName?: string,
+export type Chg = {
+  email?: string;
+  fName?: string;
+  lName?: string;
 };
 
-type UserChg = {
-  email?: string,
-  fName?: string,
-  lName?: string,
+export type Mdl = base.Rsc<Chg> & Base;
+
+const fromGet = (g: Get): Mdl => {
+  const m: Mdl = {
+    ...base.fromGet(g),
+    email: g.email,
+    fName: g.fName,
+    st: g.st,
+    opts: g.opts,
+    desc: descs.fromGet(g.desc)
+  };
+  if (g.lName) m.lName = g.lName;
+  return m;
 };
+const cmpl = (m: Mdl | undefined) => base.cmpl(mdl);
 
-export type User = BaseMdl<UserChg> & UserSvc;
+// TIP: After a stream is terminated ( onComplete / onError has been called ), 
+// subscriber unsubscribes automatically. You should be able to test
+// these behaviors using isUnsubscribed() method on the Subscription object.
+// https://stackoverflow.com/questions/41826478/do-i-have-to-unsubscribe-from-completed-observable
 
-const fromSvc = (o: UserSvc): User => ({
-  ...o,
-  chg$: new Subject<UserChg>()
-});
+// When a new subscriber subscribes to the ReplaySubject instance, it will synchronously
+// emit all values in its buffer in a First-In-First-Out (FIFO) manner. 
+// The ReplaySubject will also complete, if it has observed completion; 
+// and it will error if it has observed an error (note same as Subject).
+// https://rxjs.dev/api/index/class/ReplaySubject
 
-let user$: Subject<User> = new ReplaySubject<User>(1);
-let userEmail = '';
-const isInitSessionValid$: Subject<boolean> = new ReplaySubject<boolean>(1);
-let initSessionCheckState = 0;
+let mdl: Mdl | undefined; // set (and in mdl$) if signed in
+let mdl$: ReplaySubject<Mdl> = new ReplaySubject<Mdl>(1);
+let subscpt: Subscription | undefined;
+let isSessionChecked = false;
 
-const load = (err401Ok?: boolean) => {
-  const rty = err401Ok ? {throwOnError: true} : {};
-  ajax.getJSON<UserSvc[]>(`${baseUrl}/users?ses=1`)
-    .pipe(retrier(rty))
-    .subscribe({
-      next: rsp => {
-        if (rsp.length !== 1) {
-          console.log('unknown get user response');
-          if (initSessionCheckState < 2) {
-            initSessionCheckState = 2;
-            isInitSessionValid$.next(false);
-          }
-          return;
-        }
-        // session still valid
-        userEmail = rsp[0].email;
-        if (initSessionCheckState < 2) {
-          initSessionCheckState = 2;
-          isInitSessionValid$.next(true);
-        }
-        user$.next(fromSvc(rsp[0]));
-      },
-      error: err => {
-        
-        // TODO redo error handling vis-a-vis err401Ok
-        
-        if (err.status === 401 && err401Ok) {
-          // OK no real error, no valid session
-          console.log(`OK, no valid session: ${err.message}`);
+const done = (result?: Get | Error, ack$?: Subject<void>) => {
+  subscpt?.unsubscribe();
+  subscpt = undefined;
+  const checkingSession = !isSessionChecked;
+  isSessionChecked = true;
+  if (result && !(result instanceof Error)) { // got user, next
+    console.log('user: success');
+    mdl = fromGet(result);
+    ack$?.complete();
+    mdl$.next(mdl);
+  } else { // no user, complete or error
+    let error;
+    if (result) { // must be error
+      const status = (result instanceof Error) ? (
+        (result instanceof RequestError) ? result.status : 
+          ('status' in result) ? result['status'] : -1) : -1;
+      const msg = (result instanceof Error) ? result.message : '<unknown>';
+      if (checkingSession) {
+        if (status === 401) {
+          console.log('user: no valid initial session');
         } else {
-          console.log(`error checking session, ignoring: ${err.message}`);
+          console.log(`user: error checking session, ignoring: ${msg}`);
         }
-        if (initSessionCheckState < 2) {
-          initSessionCheckState = 2;
-          isInitSessionValid$.next(false);
-        }
+        // complete w/o having gotten a valid user
+      } else {
+        // "normal" get user error on sign-in, alert will tell user what to do
+        error = result;
       }
+    }
+    const tmp$ = mdl$;
+    mdl$ = new ReplaySubject<Mdl>(1);
+    const tmp = mdl;
+    mdl = undefined;
+    cmpl(tmp); // auto-unsubscribe subscribers
+    if (error) {
+      ack$?.error(error);
+      tmp$.error(error);
+    } else {
+      ack$?.complete();
+      tmp$.complete();
+    }
+  }
+}
+
+const load = (ack$?: Subject<void>) => {
+  const opts = isSessionChecked ? {} : {noAlertStatus: 401};
+  subscpt = ajax.getJSON<Get[]>(`${baseUrl}/users`)
+    .pipe(retrier(opts))
+    .subscribe({
+      next: gs => done(gs[0], ack$),
+      error: e => done(e, ack$)
     });
 };
 
-export const getIsInitSessionValid$ = () => {
-  if (!initSessionCheckState) {
-    // setting flag and getting an error will force user to sign in
-    // note that we do not display any error, signing in will do that
-    // if the problem still persists
-    initSessionCheckState = 1;
-    load(true);
+// the first call will test the session and get the user's info
+// if valid the user mdl will be put in the returned stream, otherwise
+// the user must sign in (or registery/validate email/sign in)
+export const get$ = (): ReplaySubject<Mdl> => {
+  if (!subscpt && !isSessionChecked && !mdl) {
+    load();
   }
-  return isInitSessionValid$;
-}
-
-export const get$ = (): Subject<User> => {
-  getIsInitSessionValid$();
-  return user$;
+  return mdl$;
 };
 
-export type Creds = {
-  email: string;
-  pswd: string;
-};
-
-const checkForErrors = (api: number, email?: string) => {
+const checkStateErrors = (api: number, email?: string) => {
   // check for programming errors
-  if (0 && userEmail) {console.log('still signed in'); return true;}
-  if (1 && userEmail) {
-    console.log(`already signed in${userEmail !== email ? ' under different email' : ''}`);
+  if (api === 0 && mdl) {console.log('still signed in'); return true;}
+  if (api === 1 && mdl) {
+    console.log(`already signed in${mdl.email !== email ? ' under different email' : ''}`);
     return true;
   }
-  if (2 && !userEmail) {console.log('already signed out'); return true;}
-  if (initSessionCheckState < 2) {
-    console.log('init session not checked, use getIsInitSessionValid$()');
+  if (api === 2 && !mdl) {console.log('already signed out'); return true;}
+  if (subscpt) {
+    console.log('still loading from prev command or initialization');
     return true;
   }
   return false;
 }
 
-export const register = ({email, pswd}: Creds) => {
-  if (checkForErrors(0)) return;
-  // TODO display alert to check user email
-  ajax.post<void>(`${baseUrl}/users`, {email, pswd})
-    .pipe(retrier())
-    .subscribe({
-      next: () => {}
-    });
-};
-
-export const signIn = ({email, pswd}: Creds) => {
-  if (checkForErrors(1, email)) return;
-  ajax.post<void>(`${baseUrl}/sessions`, {email, pswd})
-    .pipe(retrier())
-    .subscribe({
-      next: () => load() // GET user
-    });
-};
-
-export const signOut = () => {
-  if (checkForErrors(2)) return;
-  ajax.delete<void>(`${baseUrl}/sessions`)
+export const register = (p: Post): Subject<void> => {
+  const ack$ = new Subject<void>();
+  if (checkStateErrors(0)) {
+    ack$.error(new Error('invalid state for register'));
+    return ack$;
+  }
+  subscpt = ajax.post<void>(`${baseUrl}/users`, p)
     .pipe(retrier())
     .subscribe({
       next: () => {
-        userEmail = '';
-        const tmp$ = user$;
-        user$ = new ReplaySubject<User>(1);
-        tmp$.complete();
+        subscpt?.unsubscribe();
+        subscpt = undefined;
+        alert.push({severity: 3, message: 'Check email for verification link.'});
+        ack$.complete();
+      },
+      error: e => {
+        subscpt = undefined;
+        ack$.error(e);
       }
     });
+  return ack$;
+};
+
+export const signIn = ({email, pswd}: Creds): Subject<void> => {
+  const ack$ = new Subject<void>();
+  if (checkStateErrors(1, email)) {
+    ack$.error(new Error('invalid state for signIn'));
+    return ack$;
+  }
+  subscpt = ajax.post<void>(`${baseUrl}/sessions`, {email, pswd})
+    .pipe(retrier())
+    .subscribe({
+      next: () => load(ack$), // GET user
+      error: e => {
+        subscpt = undefined;
+        ack$.error(e);
+      }
+    });
+  return ack$;
+};
+
+export const signOut = (): Subject<void> => {
+  const ack$ = new Subject<void>();
+  if (checkStateErrors(2)) {
+    ack$.error(new Error('invalid state for signOut'));
+    return ack$;
+  }
+  subscpt = ajax.delete<void>(`${baseUrl}/sessions`)
+    .pipe(retrier())
+    .subscribe({
+      next: () => done(undefined, ack$),
+      error: e => { // stay signed in, alert will prompt user to retry
+        subscpt = undefined;
+        ack$.error(e);
+      }
+    });
+  return ack$;
 };

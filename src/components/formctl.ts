@@ -1,10 +1,10 @@
 type FormValues = {
-  [key: string]: any
+  [k: string]: any
 }
 
 export default class FormCtl {
   values: FormValues = {}; // can be accessed when all fields are valid
-  isValids: {[key: string] :boolean} = {};
+  isValids: {[k: string] :boolean} = {};
   onAllAreValid = (valid: boolean) => {};
 
   checkAllAreValid(): boolean | undefined { // private

@@ -2,8 +2,8 @@ import { ChangeEvent, FormEvent, useState } from 'react';
 import { Button, Dialog, Tabs, Tab } from '@material-ui/core';
 import * as user from '../models/user';
 import FormCtl from './formctl';
-import EmailField from './EmailField';
-import PswdField from './PswdField';
+import EmailField from './inputs/EmailField';
+import PswdField from './inputs/PswdField';
 import { Creds } from '../models/user';
 import FormActions from './FormActions';
 
@@ -35,7 +35,7 @@ const UserCtlDialog = ({open, onClose}: UserCtlDialogProps) => {
     event.preventDefault(); 
     switch (tabIdx) {
       case 0: user.signIn(formCtl.values as Creds); break;
-      case 1: user.register(formCtl.values as Creds); break;
+      // case 1: user.register(formCtl.values as Creds); break;
       case 2: break; // TODO
     }
   }

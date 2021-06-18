@@ -1,11 +1,11 @@
 import { ChangeEvent, useEffect, useState } from 'react';
 import { TextField } from '@material-ui/core';
-import FormCtl from './formctl';
+import FormCtl from '../formctl';
 
 type Props = {
   formCtl: FormCtl;
   fieldKey: string;
-  [key: string]: any;
+  [k: string]: any;
 };
 
 const emailRegex = /^(([^<>()[\].,;:\s@"]+(\.[^<>()[\].,;:\s@"]+)*)|(".+"))@(([^<>()[\].,;:\s@"]+\.)+[^<>()[\].,;:\s@"]{2,})$/;
@@ -17,7 +17,7 @@ const EmailField = ({formCtl, fieldKey, ...other}: Props) => {
   useEffect(() => {
     formCtl.addField(fieldKey);
     return () => formCtl.removeField(fieldKey);
-  } , [formCtl, fieldKey]);
+  }, [formCtl, fieldKey]);
   const onChange = (event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>) => {
     const v = event.target.value;
     let isV = !!v;

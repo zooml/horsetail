@@ -4,8 +4,8 @@ type IfDrCrProps = {
   amount: number,
   asCr: boolean,
   asSum?: boolean,
-  style?: {[key: string]: any},
-  [key: string]: any
+  style?: {[k: string]: any},
+  [k: string]: any
 }
 
 const countryLocaleCode = 'en-US'; // TODO localize

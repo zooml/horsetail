@@ -17,7 +17,7 @@ import TableRow from "@material-ui/core/TableRow";
 import faker from "faker";
 type IfRowData = {
   id: string,
-  [key: string]: any
+  [k: string]: any
 };
 const createRow = (): IfRowData => ({
   id: faker.datatype.uuid(),

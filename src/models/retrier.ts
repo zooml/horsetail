@@ -1,4 +1,4 @@
-import { EMPTY, Observable, throwError, timer } from 'rxjs';
+import { Observable, throwError, timer } from 'rxjs';
 import { AjaxError } from 'rxjs/ajax';
 import { mergeMap, retryWhen } from 'rxjs/operators';
 import msgs from '../utils/msgs';
@@ -14,20 +14,29 @@ export class RequestError extends Error {
   }
 }
 
-const fmtMsg = (e: AjaxError, isNE?: boolean): string => {
+// formats msg for user and logs
+// use cases:
+// 1. network error
+// 2. server/gateway error: hopefully tmp down
+// 3. some 4xx: shouldn't happen, some client bug (or maybe in server)
+const fmtMsg = (e: AjaxError, isNE: boolean, isSE: boolean): [string, string] => {
   if (isNE) {
-    return msgs.NETWORK_ERROR;
+    const detail = 'req network error';
+    console.log(detail);
+    return [msgs.NETWORK_ERROR, detail];
   }
-  const body = e.response?.body;
-  const code = body?.code;
-  if (!code) {
-    return msgs.UNKNOWN_ERROR + ` (${e.status})`;
+  const status = `(${e.status})`;
+  if (isSE) { // server does not send body
+    const detail = `req server error ${status}`;
+    console.log(detail);
+    return [`${msgs.SERVER_ERROR} ${status}`, detail];
   }
-  // name.charAt(0).toUpperCase() + name.slice(1)
-  let msg = body?.message ?? '.'; // should always be message if code
-  msg = `${msg.charAt(0).toUpperCase()}${msg.slice(1)}`;
-  if (msg.charAt(msg.length - 1) !== '.') msg = `${msg}.`;
-  return msgs.UNEXPECTED_ERROR + `${msg} (${code})`;
+  const body = e.response;
+  const code = body?.code ? `${body?.code}` : '<no code>';
+  const statusCode = `(${e.status}, ${code})`;
+  const detail = `req unexpected error ${statusCode}: ${body?.message ?? '<no msg>'}`;
+  console.log(detail);
+  return [`${msgs.UNEXPECTED_ERROR} ${statusCode}`, detail];
 };
 
 // https://gist.github.com/tanem/011a950b93a89e43cfc335f617dbb230
@@ -38,27 +47,24 @@ const fmtMsg = (e: AjaxError, isNE?: boolean): string => {
 const retrier = <T>({
   maxRetryAttempts = 3,
   delayMs = 1000,
-  throwOnError = false
+  noAlertStatus = -1
 } = {}) => retryWhen<T>((errors: Observable<AjaxError>) =>
   errors.pipe(
     mergeMap((error, index) => {
       const status = error.status;
       const errorCls = Math.floor(status / 100);
       const isNE = isNetworkError(error);
-      // TODO param for "action desc" for more useful msg
-      const msg = fmtMsg(error, isNE);
-      // TODO if timeout then retry????? set timeouts?????
-      const retriable =
-          isNE ||
-          errorCls === 5 ||
-          status === 429;
+      const isSE = !isNE && (errorCls === 5 || status === 429);
+      const [msg, detail] = fmtMsg(error, isNE, isSE);
+      // TODO set network timeouts?????
+      const retriable = isNE || isSE;
       const retryAttempt = index + 1;
       if (!retriable || maxRetryAttempts < retryAttempt) {
-        if (throwOnError) {
-          return throwError(() => new RequestError(msg, status));
+        console.log(retriable ? 'no more retry attempts' : 'not retriable');
+        if (status !== noAlertStatus) {
+          alert.push({severity: 0, message: msg});
         }
-        alert.push({severity: 0, message: msg});
-        return EMPTY;
+        return throwError(() => new RequestError(detail, status));
       }
       const nextDelayMs = (1 << index) * delayMs;
       console.log(`attempt ${retryAttempt}: retrying in ${nextDelayMs} ms: ${msg}`); // WARN
