@@ -39,6 +39,13 @@ const fmtMsg = (e: AjaxError, isNE: boolean, isSE: boolean): [string, string] =>
   return [`${msgs.UNEXPECTED_ERROR} ${statusCode}`, detail];
 };
 
+export type RetryOpts = {
+  maxRetryAttempts?: number;
+  delayMs?: number;
+  noAlertStatus?: number;
+  overrideAlert?: alert.Alert;
+};
+
 // https://gist.github.com/tanem/011a950b93a89e43cfc335f617dbb230
 // TODO what about network errors???? AjaxTimeout????? status === 0 timeout?
 // https://www.aurigait.com/blog/error-handling-in-ajax/
@@ -47,8 +54,9 @@ const fmtMsg = (e: AjaxError, isNE: boolean, isSE: boolean): [string, string] =>
 const retrier = <T>({
   maxRetryAttempts = 3,
   delayMs = 1000,
-  noAlertStatus = -1
-} = {}) => retryWhen<T>((errors: Observable<AjaxError>) =>
+  noAlertStatus = -1,
+  overrideAlert = undefined
+}: RetryOpts = {}) => retryWhen<T>((errors: Observable<AjaxError>) =>
   errors.pipe(
     mergeMap((error, index) => {
       const status = error.status;
@@ -62,7 +70,7 @@ const retrier = <T>({
       if (!retriable || maxRetryAttempts < retryAttempt) {
         console.log(retriable ? 'no more retry attempts' : 'not retriable');
         if (status !== noAlertStatus) {
-          alert.push({severity: 0, message: msg});
+          alert.push(overrideAlert ?? {severity: 0, message: msg});
         }
         return throwError(() => new RequestError(detail, status));
       }

@@ -1,122 +1,82 @@
 import { ajax } from 'rxjs/ajax';
 import { EMPTY, ReplaySubject, Subject } from 'rxjs';
 import { baseUrl } from '../utils/config';
-import { ArrChg, Rsc, Get, MdlWChg } from './mdl';
+import * as mdl from './mdl';
+import * as descs from './descs';
+import * as actts from './actts';
 import retrier from './retrier';
 import * as org from './org';
 import { catchError } from 'rxjs/operators';
+import { CATEGORIES, Category, CATEGORY_IDS, Get, CloseGet } from '../api/accounts';
+import { toDate } from '../common/acctdate';
+import GlbState from './glbstate';
+import { Alert } from './alert';
 
-type AccountSvc = { // TODO share with svc????
-  id: string;
-  oId: string;
-  uId: string;
-  name: string;
-  num: number;
-  begAt: Date;
-  isCr?: boolean; // required if different than parent
-  note?: string;
-  sumId?: string; // required if not top-level
-  catId?: number;
-  closes: [{
-    id: number;
-    fund: number;
-    bal: number;
-  }];
-  suss: [{
-    begAt: Date;
-    bUId: string;
-    endAt?: Date;
-    eUId?: string;
-    note?: string;
-  }]
-} & Get;
+export type CloseMdl = CloseGet;
+const fromCloseGet = (g: CloseGet): CloseMdl => g;
 
-export const CategoryIds = Object.freeze({ // WARN: service dep
-  ASSET: 1,
-  LIABILITY: 2,
-  EQUITY: 3,
-  INCOME: 4,
-  EXPENSE: 5
-});
-
-type Category = {
-  id: number;
-  tag: string;
-  isCr: boolean;
-};
-
-export const Categories: {[key: number]: Category} = Object.freeze({ // WARN: service dep
-  1: {id: 1, tag: 'assets', isCr: false},
-  2: {id: 2, tag: 'liabilities', isCr: true},
-  3: {id: 3, tag: 'equity', isCr: true},
-  4: {id: 4, tag: 'revenue', isCr: true},
-  5: {id: 5, tag: 'expenses', isCr: false}
-});
-
-export type AccountChg = {
-  name?: string;
+export type Chg = {
   num?: number;
-  isCr?: boolean;
-  note?: string;
-  subs?: ArrChg<Account>;
-  // TODO closes, suss
+  name?: string;
 };
-
-export type Account = Rsc<AccountChg> & {
-  id: string;
-  uId: string;
-  name: string;
+export type Mdl = mdl.Rsc<Chg> & {
+  oId: string;
   num: number;
+  name: string;
+  begAt: Date;
+  desc: descs.Mdl;
+  sum?: Mdl; // missing if general acct
   cat: Category;
   isCr: boolean;
-  note?: string;
-  sum?: Account; // null if general acct
-  subs: Account[];
-  // TODO closes, suss
+  clos: mdl.Arr<CloseMdl>;
+  actts: mdl.Arr<actts.Mdl>;
+  subs: mdl.Arr<Mdl>;
+  svcIsCr?: boolean; // service value
   tmpCatId?: number; // tmp until inherit parent
   tmpSumId?: string; // tmp until inherit parent
-  svcIsCr?: boolean; // service value
+};
+const fromGet = (g: Get): Mdl => ({
+  ...mdl.fromGet(g),
+  oId: g.oId,
+  num: g.num,
+  name: g.name,
+  begAt: toDate(g.begAt),
+  desc: descs.fromGet(g.desc),
+  cat: CATEGORIES[CATEGORY_IDS.ASSET], // default, fix in inherit parent
+  isCr: false, // default, fix in inherit parent
+  clos: mdl.makeArr(g.clos, fromCloseGet),
+  actts: mdl.makeArr(g.actts, actts.fromGet),
+  subs: mdl.makeArr([], fromGet),
+  svcIsCr: g.isCr,
+  tmpCatId: g.catId,
+  tmpSumId: g.sumId,
+});
+const cmpl = (m: Mdl) => {
+  mdl.arrCmpl(m.subs, cmpl);
+  mdl.arrCmpl(m.clos);
+  mdl.arrCmpl(m.actts);
+  mdl.cmpl(m);
 };
 
-export type Chart = Account[];
-
-export type Chg$WChart = MdlWChg<ArrChg<Account>, Chart>;
-
-const fromSvc = (o: AccountSvc): Account => ({
-  id: o.id,
-  uId: o.uId,
-  name: o.name,
-  num: o.num,
-  cat: Categories[CategoryIds.ASSET], // default, fix in inherit parent
-  isCr: false, // default, fix in inherit parent
-  note: o.note,
-  subs: [],
-  tmpCatId: o.catId,
-  tmpSumId: o.sumId,
-  svcIsCr: o.isCr,
-  at: o.at,
-  upAt: o.upAt,
-  v: o.v,
-  chg$: new Subject<AccountChg>()
-});
-
-const addToArray = (arr: Account[], acct: Account) => {
+const addToArray = (arr: mdl.Arr<Mdl>, acct: Mdl, init?: boolean) => {
   // scan O(n**2) OK as there will not be many children
   for(let i = 0; i < arr.length; ++i) {
     const a = arr[i];
     if (a.num === acct.num) throw new Error(`account ${acct.id}: duplicate number: ${acct.num}`);
     if (acct.num < a.num) {
-      arr.splice(i, 0, acct);
+      if (init) arr.splice(i, 0, acct);
+      else mdl.addToMdl(arr, acct, i);
       return;
     }
   }
-  arr.push(acct);
+  if (init) arr.push(acct);
+  else mdl.addToMdl(arr, acct, -1);
 };
 
-const inheritSum = (all: {[k: string]: Account}, gens: {[k: string]: Account}, acct: Account) => {
+const inheritSum = (all: {[k: string]: Mdl}, gens: {[k: string]: Mdl}, acct: Mdl) => {
   if (acct.tmpCatId) { // init general account
     if (acct.tmpSumId) throw new Error(`account ${acct.id}: category on non-general account`);
-    const category = Categories[acct.tmpCatId];
+    const category = CATEGORIES[acct.tmpCatId];
     if (!category) throw new Error(`account ${acct.id}: invalid category: ${acct.tmpCatId}`);
     delete acct.tmpCatId;
     acct.cat = category;
@@ -135,71 +95,68 @@ const inheritSum = (all: {[k: string]: Account}, gens: {[k: string]: Account}, a
     } else {
       acct.isCr = sum.isCr;
     }
-    addToArray(sum.subs, acct);
+    addToArray(sum.subs, acct, true);
   }
 };
 
-const init = (accts: AccountSvc[]): Chart => {
-  const all: {[k: string]: Account} = {};
-  const gens: {[k: string]: Account} = {};
-  accts.forEach(acct => {all[acct.id] = fromSvc(acct);});
-  for (const id in all) {
-    inheritSum(all, gens, all[id]);
+// chart of accounts, these are the general accounts with recursive sub accounts
+// all levels are sorted by num
+export type Chart = mdl.Arr<Mdl>;
+const chartFromGets = (gs: Get[]): Chart => {
+  const all: {[k: string]: Mdl} = {};
+  const gens: {[k: string]: Mdl} = {};
+  gs.forEach(acct => {all[acct.id] = fromGet(acct);});
+  for (const acct of Object.values(all)) {
+    inheritSum(all, gens, acct);
   }
-  const chart = Object.values(gens);
-  return chart.sort((o0: Account, o1: Account) => o0.num - o1.num);
+  const chart: Chart = mdl.makeArr([], fromGet);
+  chart.splice(0, 0, ...Object.values(gens));
+  return chart.sort((o0: Mdl, o1: Mdl) => o0.num - o1.num);
 };
+const chartCmpl = (c: Chart) => mdl.arrCmpl(c, cmpl);
 
-let loadState = 0;
-let oId = '';
-let chg$WChart: Chg$WChart | undefined;
-let chg$WChart$: Subject<Chg$WChart> = new ReplaySubject<Chg$WChart>(1);
+let state = new GlbState<Chart>('account');
 
-const load = () => {
-  ajax.getJSON<AccountSvc[]>(`${baseUrl}/accounts`, {'X-OId': oId})
-    .pipe(retrier(), catchError(() => {loadState = 0; return EMPTY;}))
-    .subscribe({
-      next: accts => {
-        loadState = 2;
-        chg$WChart = {
-          chg$: new Subject(),
-          mdl: init(accts)
-        };
-        chg$WChart$.next(chg$WChart);
-      }});
-};
+// returns stream containing current chart, or that will contain
+// chart after call to org.set(id)/load(), and successful get of accounts
+// does not report errors, completes on org clear
+export const get$ = (): ReplaySubject<Chart> => state.mdl$;
 
-const complete = () => {
-  // WARN the individual accounts are not completed
-  loadState = 0;
-  oId = '';
-  chg$WChart = undefined;
-  const tmp = chg$WChart$;
-  chg$WChart$ = new ReplaySubject();
-  tmp.complete();
-};
-
-export const getChg$WChart$ = () => {
-  if (!loadState) {
-    loadState = 1;
+// load chart of accounts for current or future org (call org.set())
+// returns an ack stream that will report error or success (complete)
+// can call again on error
+// show alert (set retry action) before reporting error
+export const load = (overrideAlert?: Alert): Subject<void> => {
+  if (!state.ack$) {
+    state.ack$ = new Subject();
     org.get$().subscribe({
       next: org => {
-        oId = org.id;
-        load();
+        const opts = overrideAlert ? {overrideAlert} : {};
+        state.subscpt = ajax.getJSON<Get[]>(`${baseUrl}/accounts`, {'X-OId': org.id})
+          .pipe(retrier(opts))
+          .subscribe({
+            next: gs => state.next(chartFromGets(gs)),
+            error: e => state.error(e)
+          })
       },
-      complete: complete
+      complete: () => { // org cleared, user sign out, etc.
+        const tmp = state;
+        state = new GlbState(tmp);
+        tmp.cmpl(chartCmpl);
+      }
     });
-  }    
-  return chg$WChart$;
+  }
+  return state.ack$;
 }
 
-export const post = (acct: Account) => {
+
+export const post = (acct: Mdl) => {
 
 
 }
 
-export const patch = (acct: Account, patch: AccountChg) => {
-  const before: AccountChg = {};
+export const patch = (acct: Mdl, patch: Chg) => {
+  const before: Chg = {};
   let svcProp = false;
 
   // TODO other props
@@ -211,14 +168,10 @@ export const patch = (acct: Account, patch: AccountChg) => {
   }
 };
 
-export const suspend = (acct: Account) => {
-  const sum = acct.sum;
+export const suspend = (acct: Mdl) => {
+  // TODO const sum = acct.sum;
+};
 
-  // TODO 
-
-  if (sum) {
-    // TODO const before = {children: [...parent.children]};
-    // TODO parent.chg$.next(before);
-  }
-  acct.chg$.complete(); // notify deleted
+export const reactivate = (acct: Mdl) => {
+  // TODO const sum = acct.sum;
 };

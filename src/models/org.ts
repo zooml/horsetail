@@ -1,4 +1,4 @@
-import * as base from './mdl'
+import * as mdl from './mdl'
 import { ajax } from 'rxjs/ajax';
 import { baseUrl } from '../utils/config';
 import { ReplaySubject, Subject, Subscription } from 'rxjs';
@@ -8,6 +8,7 @@ import * as descs from './descs';
 import * as actts from './actts';
 import { CloseGet, FundGet, Get, Post, RoleGet, TldrGet, UserGet } from '../api/orgs';
 import { toDate } from '../common/acctdate';
+import GlbState from './glbstate';
 
 export type Role = {
   id: number;
@@ -22,58 +23,58 @@ const fromRoleGet = (g: RoleGet): Role => ({
 
 export type User = {
   id: string;
-  roles: base.Arr<Role>;
+  roles: mdl.Arr<Role>;
 };
 const fromUserGet = (g: UserGet): User => ({
   id: g.id,
-  roles: base.makeArr(g.roles, fromRoleGet)
+  roles: mdl.makeArr(g.roles, fromRoleGet)
 });
-const cmplUser = (m: User) => base.arrCmpl(m.roles);
+const cmplUser = (m: User) => mdl.arrCmpl(m.roles);
 
 export type FundChg = {
   tag?: string;
   begAt?: Date;
   desc?: descs.Chg;
 };
-export type Fund = base.Chgable<FundChg> & {
+export type Fund = mdl.Chgable<FundChg> & {
   id: number;
   tag: string;
   begAt: Date;
   at: Date;
   desc: descs.Mdl;
-  actts: base.Arr<actts.Mdl>;
+  actts: mdl.Arr<actts.Mdl>;
 };
 const fromFundGet = (g: FundGet): Fund => ({
-  ...base.makeChgable(),
+  ...mdl.makeChgable(),
   id: g.id,
   tag: g.tag,
   begAt: toDate(g.begAt),
   at: toDate(g.at),
   desc: descs.fromGet(g.desc),
-  actts: base.makeArr(g.actts, actts.fromGet)
+  actts: mdl.makeArr(g.actts, actts.fromGet)
 });
 const cmplFund = (m: Fund) => {
-  base.arrCmpl(m.actts);
-  base.cmpl(m);
+  mdl.arrCmpl(m.actts);
+  mdl.cmpl(m);
 };
 
 export type CloseChg = {
   desc?: descs.Chg;
 };
-export type Close = base.Chgable<CloseChg> & {
+export type Close = mdl.Chgable<CloseChg> & {
   id: number;
   endAt: Date;
   at: Date;
   desc: descs.Mdl;
 };
 const fromCloseGet = (g: CloseGet): Close => ({
-  ...base.makeChgable(),
+  ...mdl.makeChgable(),
   id: g.id,
   endAt: toDate(g.endAt),
   at: toDate(g.at),
   desc: descs.fromGet(g.desc)
 });
-const cmplClose = (m: Close) => base.cmpl(m);
+const cmplClose = (m: Close) => mdl.cmpl(m);
 
 export type Chg = { // TldrMdl and Mdl
   name?: string;
@@ -81,74 +82,47 @@ export type Chg = { // TldrMdl and Mdl
   desc?: descs.Chg;
 };
 
-export type TldrMdl = base.Rsc<Chg> & {
+export type TldrMdl = mdl.Rsc<Chg> & {
   saId: string;  
   name: string;
   begAt: Date;
   desc: descs.Mdl;
-  users: base.Arr<User>;
+  users: mdl.Arr<User>;
 };
 const tldrFromGet = (g: TldrGet): TldrMdl => ({
-  ...base.fromGet(g),
+  ...mdl.fromGet(g),
   saId: g.saId,
   name: g.name,
   begAt: toDate(g.begAt),
   desc: descs.fromGet(g.desc),
-  users: base.makeArr(g.users, fromUserGet)
+  users: mdl.makeArr(g.users, fromUserGet)
 });
 const tldrCmpl = (m: TldrMdl) => {
-  base.arrCmpl(m.users, cmplUser);
-  base.cmpl(m);
+  mdl.arrCmpl(m.users, cmplUser);
+  mdl.cmpl(m);
 };
 
 export type Mdl = TldrMdl & {
-  funds: base.Arr<Fund>;
-  clos: base.Arr<Close>;
+  funds: mdl.Arr<Fund>;
+  clos: mdl.Arr<Close>;
 };
 const fromGet = (g: Get): Mdl => ({
   ...tldrFromGet(g),
-  funds: base.makeArr(g.funds, fromFundGet),
-  clos: base.makeArr(g.clos, fromCloseGet),
+  funds: mdl.makeArr(g.funds, fromFundGet),
+  clos: mdl.makeArr(g.clos, fromCloseGet),
 });
 const cmpl = (m: Mdl) => {
-  base.arrCmpl(m.funds, cmplFund);
-  base.arrCmpl(m.clos, cmplClose);
+  mdl.arrCmpl(m.funds, cmplFund);
+  mdl.arrCmpl(m.clos, cmplClose);
   tldrCmpl(m);
 };
 
-export type TldrMdls = base.Hash<TldrMdl>;
-const tldrsFromGets = (gs: TldrGet[]) => base.makeHash(gs, tldrFromGet);
-const tldrsCmpl = (m: TldrMdls) => base.hashCmpl(m, tldrCmpl);
+export type TldrMdls = mdl.Hash<TldrMdl>;
+const tldrsFromGets = (gs: TldrGet[]) => mdl.makeHash(gs, tldrFromGet);
+const tldrsCmpl = (m: TldrMdls) => mdl.hashCmpl(m, tldrCmpl);
 
-class State<T> {
-  mdl$ = new ReplaySubject<T>();
-  mdl?: T;
-  ack$?: Subject<void>;
-  subscpt?: Subscription;
-  next(mdl: T) {
-    this.subscpt?.unsubscribe();
-    this.subscpt = undefined;
-    this.mdl = mdl;
-    this.ack$?.complete(); // keep ack$ so load can be called again (and not load)
-    this.mdl$.next(mdl);  
-  }
-  error(e: Error) { // keep mdl$, report error via ack$, allow retry
-    this.subscpt?.unsubscribe();
-    this.subscpt = undefined;
-    const tmp$ = this.ack$;
-    delete this.ack$;
-    tmp$?.error(e);  
-  }
-  cmpl(cmplMdl: (m: T) => void) { // assumes this state already replaced
-    this.subscpt?.unsubscribe();
-    this.ack$?.error(new Error('user signed out while waiting for load org or invalid session'));
-    if (this.mdl) cmplMdl(this.mdl);
-    this.mdl$.complete();
-  }
-};
-
-let mState = new State<Mdl>();
-let tmsState = new State<TldrMdls>();
+let mState = new GlbState<Mdl>('org');
+let tmsState = new GlbState<TldrMdls>('tldr orgs');
 
 // the returned stream will emit a single next with the org tldrs (when loaded)
 // and is completed when the user signs out (no error reported here)
@@ -172,7 +146,7 @@ export const loadTldrs = (): Subject<void> => {
         }),
     complete: () => { // user signed out
       const tmp = tmsState; // reset state first
-      tmsState = new State();
+      tmsState = new GlbState(tmp);
       tmp.cmpl(tldrsCmpl);
     }
   });
@@ -192,7 +166,7 @@ export const clear$ = (): ReplaySubject<Mdl> => {
   }
   if (mState.mdl) {
     const tmp = mState;
-    mState = new State();
+    mState = new GlbState(tmp);
     tmp.cmpl(cmpl);
   }
   return mState.mdl$;
@@ -222,7 +196,7 @@ export const set = (id: string): Subject<void> => {
         }),
     complete: () => { // user signed out
       const tmp = mState; // reset state first
-      mState = new State();
+      mState = new GlbState(tmp);
       tmp.cmpl(cmpl);  
     }
   });

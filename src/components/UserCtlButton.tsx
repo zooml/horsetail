@@ -4,7 +4,7 @@ import * as user from '../models/user';
 import FormCtl from './formctl';
 import EmailField from './inputs/EmailField';
 import PswdField from './inputs/PswdField';
-import { Creds } from '../models/user';
+import { Creds } from '../api/users';
 import FormActions from './FormActions';
 
 type CredsPanelProps = {

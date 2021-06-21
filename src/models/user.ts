@@ -1,11 +1,12 @@
 import * as base from './mdl'
 import { ajax } from 'rxjs/ajax';
 import { baseUrl } from '../utils/config';
-import { ReplaySubject, Subject, Subscription } from 'rxjs';
+import { ReplaySubject, Subject } from 'rxjs';
 import retrier from './retrier';
 import * as alert from '../models/alert';
 import { Get, Base, Creds, Post } from '../api/users';
 import * as descs from './descs';
+import GlbState from './glbstate';
 
 export type Chg = {
   email?: string;
@@ -27,7 +28,7 @@ const fromGet = (g: Get): Mdl => {
   if (g.lName) m.lName = g.lName;
   return m;
 };
-const cmpl = (m: Mdl | undefined) => base.cmpl(mdl);
+const cmpl = (m: Mdl | undefined) => base.cmpl(m);
 
 // TIP: After a stream is terminated ( onComplete / onError has been called ), 
 // subscriber unsubscribes automatically. You should be able to test
@@ -40,59 +41,40 @@ const cmpl = (m: Mdl | undefined) => base.cmpl(mdl);
 // and it will error if it has observed an error (note same as Subject).
 // https://rxjs.dev/api/index/class/ReplaySubject
 
-let mdl: Mdl | undefined; // set (and in glbl$) if signed in
-let mdl$: ReplaySubject<Mdl> = new ReplaySubject<Mdl>(1);
-let subscpt: Subscription | undefined;
-let isSessionChecked = false;
+let state = new GlbState<Mdl>('user)');
 
-const done = (result?: Get | Error, ack$?: Subject<void>) => {
-  // always set our state before notifying observers
-  subscpt?.unsubscribe();
-  subscpt = undefined;
-  const checkingSession = !isSessionChecked;
-  isSessionChecked = true;
-  if (result && !(result instanceof Error)) { // got user, next
-    console.log('user: success');
-    mdl = fromGet(result);
-    ack$?.complete();
-    mdl$.next(mdl);
-  } else { // no user, complete or error
-    let error;
-    if (result) { // must be error
-      const status = ('status' in result) ? result['status'] as number : -1;
-      const msg = (result instanceof Error) ? result.message : '<unknown>';
-      if (checkingSession) { // complete w/o having gotten a valid user
-        if (status === 401) {
-          console.log('user: no valid initial session');
-        } else {
-          console.log(`user: error checking session, ignoring: ${msg}`);
-        }
-      } else { // "normal" get user error on sign-in, alert will tell user what to do
-        error = result;
-      }
+const hndlError = (e: any) => { // special handling due to initial session check
+  let error;
+  const status = ('status' in e) ? e['status'] as number : -1;
+  const msg = (e instanceof Error) ? e.message : '<unknown>';
+  if (state.first) { // complete w/o having gotten a valid user
+    if (status === 401) {
+      console.log('user: no valid initial session');
+    } else {
+      console.log(`user: error checking session, ignoring: ${msg}`);
     }
-    if (error) { // sign-in error
-      ack$?.error(error);
-    } else { // sign-out or invalid initial session
-      const tmp$ = mdl$;
-      mdl$ = new ReplaySubject<Mdl>(1);
-      const tmp = mdl;
-      mdl = undefined;
-      ack$?.complete();
-      if (tmp) cmpl(tmp);
-      tmp$.complete();
-    }
+  } else { // "normal" get user error on sign-in, alert will tell user what to do
+    error = (e instanceof Error) ? e : new Error('unknown error');
   }
-}
+  return error;
+};
 
-const load = (ack$?: Subject<void>) => {
-  const opts = isSessionChecked ? {} : {noAlertStatus: 401};
-  subscpt?.unsubscribe();
-  subscpt = ajax.getJSON<Get[]>(`${baseUrl}/users`)
+const load = () => {
+  const opts = state.first ? {noAlertStatus: 401} : {};
+  state.unsubscribe();
+  state.subscpt = ajax.getJSON<Get[]>(`${baseUrl}/users`)
     .pipe(retrier(opts))
     .subscribe({
-      next: gs => done(gs[0], ack$),
-      error: e => done(e, ack$)
+      next: gs => state.next(fromGet(gs[0])),
+      error: e => {
+        const error = hndlError(e);
+        if (error) state.error(error);
+        else { // init session check done
+          const tmp = state;
+          state = new GlbState(tmp);
+          tmp.cmpl(cmpl);
+        }
+      }
     });
 };
 
@@ -104,21 +86,21 @@ const load = (ack$?: Subject<void>) => {
 // complete on sucessfull sign out, errors are reported by
 // the ack$ streams returned by the function call to request a state change
 export const get$ = (): ReplaySubject<Mdl> => {
-  if (!subscpt && !isSessionChecked) {
+  if (!state.subscpt && state.first) {
     load();
   }
-  return mdl$;
+  return state.mdl$;
 };
 
 const checkStateErrors = (api: number, email?: string) => {
   // check for programming errors
-  if (api === 0 && mdl) {console.log('still signed in'); return true;}
-  if (api === 1 && mdl) {
-    console.log(`already signed in${mdl.email !== email ? ' under different email' : ''}`);
+  if (api === 0 && state.mdl) {console.log('still signed in'); return true;}
+  if (api === 1 && state.mdl) {
+    console.log(`already signed in${state.mdl.email !== email ? ' under different email' : ''}`);
     return true;
   }
-  if (api === 2 && !mdl) {console.log('already signed out'); return true;}
-  if (subscpt) {
+  if (api === 2 && !state.mdl) {console.log('already signed out'); return true;}
+  if (state.subscpt) {
     console.log('still loading from prev command or initialization');
     return true;
   }
@@ -131,17 +113,16 @@ export const register = (p: Post): Subject<void> => {
     ack$.error(new Error('invalid state for register'));
     return ack$;
   }
-  subscpt = ajax.post<void>(`${baseUrl}/users`, p)
+  state.subscpt = ajax.post<void>(`${baseUrl}/users`, p)
     .pipe(retrier())
     .subscribe({
       next: () => {
-        subscpt?.unsubscribe();
-        subscpt = undefined;
+        state.unsubscribe();
         alert.push({severity: 3, message: 'Check email for verification link.'});
         ack$.complete();
       },
       error: e => {
-        subscpt = undefined;
+        state.unsubscribe();
         ack$.error(e);
       }
     });
@@ -154,14 +135,12 @@ export const signIn = ({email, pswd}: Creds): Subject<void> => {
     ack$.error(new Error('invalid state for signIn'));
     return ack$;
   }
-  subscpt = ajax.post<void>(`${baseUrl}/sessions`, {email, pswd})
+  state.ack$ = ack$;
+  state.subscpt = ajax.post<void>(`${baseUrl}/sessions`, {email, pswd})
     .pipe(retrier())
     .subscribe({
-      next: () => load(ack$), // GET user
-      error: e => {
-        subscpt = undefined;
-        ack$.error(e);
-      }
+      next: () => load(), // chain state to GET user
+      error: e => state.error(e)
     });
   return ack$;
 };
@@ -172,14 +151,16 @@ export const signOut = (): Subject<void> => {
     ack$.error(new Error('invalid state for signOut'));
     return ack$;
   }
-  subscpt = ajax.delete<void>(`${baseUrl}/sessions`)
+  state.ack$ = ack$;
+  state.subscpt = ajax.delete<void>(`${baseUrl}/sessions`)
     .pipe(retrier())
     .subscribe({
-      next: () => done(undefined, ack$),
-      error: e => { // stay signed in, alert will prompt user to retry
-        subscpt = undefined;
-        ack$.error(e);
-      }
+      next: () => { // sign out complete
+        const tmp = state;
+        state = new GlbState(tmp);
+        tmp.cmpl(cmpl);
+      },
+      error: e => state.error(e) // stay signed in, alert will prompt user to retry
     });
   return ack$;
 };

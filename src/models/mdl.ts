@@ -8,9 +8,7 @@ const chg$Name = 'chg$';
 export type Chgable<TChg> = {
   chg$: Subject<TChg>;
 };
-
 export const makeChgable = <TChg>() => ({chg$: new Subject<TChg>()});
-
 export const cmpl = <TChg>(c: Chgable<TChg> | undefined) => c?.chg$?.complete();
 
 export type Rsc<TChg> = Chgable<TChg> & {
@@ -19,24 +17,20 @@ export type Rsc<TChg> = Chgable<TChg> & {
   upAt: Date;
   v: number;
 };
-
 export const fromGet = <TChg>(g: Get): Rsc<TChg> => ({
+  ...makeChgable(),
   id: g.id,
   at: toDate(g.at),
   upAt: toDate(g.upAt),
   v: g.v,
-  chg$: new Subject<TChg>()
 });
 
 export type HashChg<T> = { // assumes key in T
   add?: T;
   rem?: T;
 }
-
 export type Idable = {id: string};
-
 export type Hash<T> = {[k: string]: T} & Chgable<HashChg<T>>;
-
 export const makeHash = <S, T extends Idable>(
     arr: S[] = [],
     xform: (s: S) => T = (s) => {
@@ -52,7 +46,6 @@ export const makeHash = <S, T extends Idable>(
   }
   return m;
 };
-
 export const hashCmpl = <T>(m: Hash<T>, tCmpl?: (t: T) => void) => {
   if (tCmpl) {
     for (const [k, v] of Object.entries(m)) {
@@ -66,15 +59,12 @@ export type ArrChg<T> = {
   add?: [number, T];
   rem?: [number, T];
 };
-
 export type Arr<T> = Array<T> & Chgable<ArrChg<T>>;
-
 export const makeArr = <S, T>(items: S[], f: (s: S) => T): Arr<T> => {
   const arr = items.map(f);
   (arr as Arr<T>).chg$ = new Subject<ArrChg<T>>();
   return arr as Arr<T>;
 };
-
 export const arrCmpl = <T>(m: Arr<T>, tCmpl?: (t: T) => void) => {
   if (tCmpl) m.forEach(tCmpl);
   cmpl(m);
@@ -113,24 +103,3 @@ export function remFromMdl<T>(m: Hash<T>| Arr<T>, k: string | number): void {
     o.chg$.next({rem: itm});
   }
 };
-
-// export class ArrMdl<T> extends Array<T> implements Chgable<ArrChg<T>> {
-//   chg$: Subject<ArrChg<T>> = new Subject();
-//   private constructor(items?: Array<T>) {
-//     super(items ? items.length : 0);
-//     if (items) items.forEach(i => this.push(i));
-//   }
-//   static create<T>(): ArrMdl<T> {
-//       return Object.create(ArrMdl.prototype);
-//   };
-//   addMdl(i: number, m: T) {
-//     if (i < 0) this.push(m);
-//     else this.splice(i, 0, m);
-//     this.chg$.next({add: [i, m]});
-//   }
-//   remMdl(i: number) {
-//     this.splice(i, 1);
-//     this.chg$.next({rem: i});
-//   }
-//   complete() {this.chg$.complete();}
-// }

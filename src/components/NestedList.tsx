@@ -14,7 +14,7 @@ import ExpandLess from '@material-ui/icons/ExpandLess';
 import ExpandMore from '@material-ui/icons/ExpandMore';
 import StarBorder from '@material-ui/icons/StarBorder';
 import DrCr from './DrCr';
-import { Account } from '../models/account';
+import { Mdl } from '../models/account';
 import Typography from '@material-ui/core/Typography';
 import ButtonBase from '@material-ui/core/ButtonBase';
 
@@ -54,10 +54,10 @@ const useItemStyles = makeStyles((theme: Theme) =>
   }),
 );
 
-const AccountChildItems = ({acct, level}: {acct: Account, level: number}) => {
+const AccountChildItems = ({acct, level}: {acct: Mdl, level: number}) => {
 }
 
-const AccountItem = ({acct, level}: {acct: Account, level: number}) => {
+const AccountItem = ({acct, level}: {acct: Mdl, level: number}) => {
   const isParent = !!acct.subs.length;
   const classes = useItemStyles({level});
   const [open, setOpen] = useState(false);

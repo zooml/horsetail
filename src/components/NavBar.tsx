@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import AppBar from '@material-ui/core/AppBar'
 import Toolbar from '@material-ui/core/Toolbar'
 import Box from '@material-ui/core/Box'
@@ -7,24 +7,18 @@ import { Subscription } from 'rxjs';
 
 const OrgName = () => {
   const [name, setName] = useState('');
-  const subscripts = useRef([]);
   useEffect(() => {
-    if (!name) {
-
-    }
-    const subscripts: Subscription[] = [];
-    subscripts.push(org.get$().subscribe({
-      next: (o: org.Mdl) => {
+    const subscrpts: Subscription[] = [];
+    subscrpts.push(org.get$().subscribe({
+      next: (o: org.Mdl) => { // this might be called before subscribe returns
         setName(o.name);
-        o.chg$.subscribe({next: (c: org.Chg) => {
+        subscrpts.push(o.chg$.subscribe({next: (c: org.Chg) => {
           if (c.name) setName(c.name);
-        }})
+        }}));
       },
-      complete: () => {
-        setName('');
-      }
+      complete: () => setName('') // need this to cause useEffect to be recalled
     }));
-    return () => subscripts.forEach(s => s.unsubscribe());
+    return () => subscrpts.forEach(s =>s.unsubscribe());
   });
   return (
     <Box>${name}</Box>
