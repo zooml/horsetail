@@ -8,6 +8,11 @@ export const isDate = (v: any) => v instanceof Date;
 export const isArr = (v: any) => Array.isArray(v);
 export const isObj = (v: any) => Object.prototype.toString.call(v) === '[object Object]';
 
+export const toInt = (v: string) => {
+  const i = Number(v);
+  return isNaN(i) ? NaN : (Math.floor(i) === i ? i : NaN);
+}
+
 export const validStr = (lim: StrLimit, thro: boolean, v: any) => {
   if (!v) { // '' or undefined is OK only if min === 0
     if (!lim.min) return true;

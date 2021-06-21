@@ -1,8 +1,8 @@
-import * as base from './base'
+import * as base from './mdl'
 import { ajax } from 'rxjs/ajax';
 import { baseUrl } from '../utils/config';
 import { ReplaySubject, Subject, Subscription } from 'rxjs';
-import retrier, { RequestError } from './retrier';
+import retrier from './retrier';
 import * as alert from '../models/alert';
 import { Get, Base, Creds, Post } from '../api/users';
 import * as descs from './descs';
@@ -40,12 +40,13 @@ const cmpl = (m: Mdl | undefined) => base.cmpl(mdl);
 // and it will error if it has observed an error (note same as Subject).
 // https://rxjs.dev/api/index/class/ReplaySubject
 
-let mdl: Mdl | undefined; // set (and in mdl$) if signed in
+let mdl: Mdl | undefined; // set (and in glbl$) if signed in
 let mdl$: ReplaySubject<Mdl> = new ReplaySubject<Mdl>(1);
 let subscpt: Subscription | undefined;
 let isSessionChecked = false;
 
 const done = (result?: Get | Error, ack$?: Subject<void>) => {
+  // always set our state before notifying observers
   subscpt?.unsubscribe();
   subscpt = undefined;
   const checkingSession = !isSessionChecked;
@@ -58,32 +59,27 @@ const done = (result?: Get | Error, ack$?: Subject<void>) => {
   } else { // no user, complete or error
     let error;
     if (result) { // must be error
-      const status = (result instanceof Error) ? (
-        (result instanceof RequestError) ? result.status : 
-          ('status' in result) ? result['status'] : -1) : -1;
+      const status = ('status' in result) ? result['status'] as number : -1;
       const msg = (result instanceof Error) ? result.message : '<unknown>';
-      if (checkingSession) {
+      if (checkingSession) { // complete w/o having gotten a valid user
         if (status === 401) {
           console.log('user: no valid initial session');
         } else {
           console.log(`user: error checking session, ignoring: ${msg}`);
         }
-        // complete w/o having gotten a valid user
-      } else {
-        // "normal" get user error on sign-in, alert will tell user what to do
+      } else { // "normal" get user error on sign-in, alert will tell user what to do
         error = result;
       }
     }
-    const tmp$ = mdl$;
-    mdl$ = new ReplaySubject<Mdl>(1);
-    const tmp = mdl;
-    mdl = undefined;
-    cmpl(tmp); // auto-unsubscribe subscribers
-    if (error) {
+    if (error) { // sign-in error
       ack$?.error(error);
-      tmp$.error(error);
-    } else {
+    } else { // sign-out or invalid initial session
+      const tmp$ = mdl$;
+      mdl$ = new ReplaySubject<Mdl>(1);
+      const tmp = mdl;
+      mdl = undefined;
       ack$?.complete();
+      if (tmp) cmpl(tmp);
       tmp$.complete();
     }
   }
@@ -91,6 +87,7 @@ const done = (result?: Get | Error, ack$?: Subject<void>) => {
 
 const load = (ack$?: Subject<void>) => {
   const opts = isSessionChecked ? {} : {noAlertStatus: 401};
+  subscpt?.unsubscribe();
   subscpt = ajax.getJSON<Get[]>(`${baseUrl}/users`)
     .pipe(retrier(opts))
     .subscribe({
@@ -100,10 +97,14 @@ const load = (ack$?: Subject<void>) => {
 };
 
 // the first call will test the session and get the user's info
-// if valid the user mdl will be put in the returned stream, otherwise
-// the user must sign in (or registery/validate email/sign in)
+// if valid, the user mdl will be put in the returned stream, otherwise
+// the stream is marked complete regardless of errors (and a new stream 
+// is created) and the user must sign in (or registery/validate email/sign in)
+// note that this stream does not report errors only next on sign in and
+// complete on sucessfull sign out, errors are reported by
+// the ack$ streams returned by the function call to request a state change
 export const get$ = (): ReplaySubject<Mdl> => {
-  if (!subscpt && !isSessionChecked && !mdl) {
+  if (!subscpt && !isSessionChecked) {
     load();
   }
   return mdl$;

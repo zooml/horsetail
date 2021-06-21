@@ -14,7 +14,7 @@ const OrgName = () => {
     }
     const subscripts: Subscription[] = [];
     subscripts.push(org.get$().subscribe({
-      next: (o: org.Org) => {
+      next: (o: org.Mdl) => {
         setName(o.name);
         o.chg$.subscribe({next: (c: org.Chg) => {
           if (c.name) setName(c.name);

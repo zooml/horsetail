@@ -1,10 +1,15 @@
 import { Subject } from "rxjs";
 import { Get } from '../api/base';
 import { toDate } from "../common/acctdate";
+import { isArr } from "../common/validators";
+
+const chg$Name = 'chg$';
 
 export type Chgable<TChg> = {
   chg$: Subject<TChg>;
 };
+
+export const makeChgable = <TChg>() => ({chg$: new Subject<TChg>()});
 
 export const cmpl = <TChg>(c: Chgable<TChg> | undefined) => c?.chg$?.complete();
 
@@ -28,7 +33,34 @@ export type HashChg<T> = { // assumes key in T
   rem?: T;
 }
 
+export type Idable = {id: string};
+
 export type Hash<T> = {[k: string]: T} & Chgable<HashChg<T>>;
+
+export const makeHash = <S, T extends Idable>(
+    arr: S[] = [],
+    xform: (s: S) => T = (s) => {
+      return (s as unknown) as T;
+    }): Hash<T> => {
+  const m = {...makeChgable()} as Hash<T>;
+  if (arr) {
+    arr.reduce((m, s) => {
+      const t = xform(s);
+      m[t.id] = t;
+      return m;
+    }, m);
+  }
+  return m;
+};
+
+export const hashCmpl = <T>(m: Hash<T>, tCmpl?: (t: T) => void) => {
+  if (tCmpl) {
+    for (const [k, v] of Object.entries(m)) {
+      if (k !== chg$Name) tCmpl(v);
+    }
+  }
+  cmpl(m);
+};
 
 export type ArrChg<T> = {
   add?: [number, T];
@@ -43,10 +75,15 @@ export const makeArr = <S, T>(items: S[], f: (s: S) => T): Arr<T> => {
   return arr as Arr<T>;
 };
 
+export const arrCmpl = <T>(m: Arr<T>, tCmpl?: (t: T) => void) => {
+  if (tCmpl) m.forEach(tCmpl);
+  cmpl(m);
+}
+
 export function addToMdl<T>(m: Hash<T>, itm: any, k: string): void;
 export function addToMdl<T>(m: Arr<T>, itm: any, i: number): void; // -1 for end
 export function addToMdl<T>(m: Hash<T> | Arr<T>, itm: any, k: string | number): void {
-  if (Array.isArray(m)) {
+  if (isArr(m)) {
     const a = m as Arr<T>;
     let i = k as number;
     if (i < 0) {i = a.length; a.push(itm);}
@@ -63,7 +100,7 @@ export function addToMdl<T>(m: Hash<T> | Arr<T>, itm: any, k: string | number): 
 export function remFromMdl<T>(m: Hash<T>, k: string): void;
 export function remFromMdl<T>(m: Arr<T>, i: number): void;
 export function remFromMdl<T>(m: Hash<T>| Arr<T>, k: string | number): void {
-  if (Array.isArray(m)) {
+  if (isArr(m)) {
     const a = m as Arr<T>;
     const i = k as number;
     const t = a.splice(i, 1)[0];

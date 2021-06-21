@@ -3,7 +3,7 @@ import { toDate } from '../common/acctdate';
 import * as descs from './descs';
 
 export type Mdl = {
-  at: number;
+  at: Date;
   isAct: boolean;
   desc: descs.Mdl;
 };
