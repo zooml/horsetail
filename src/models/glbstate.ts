@@ -1,5 +1,11 @@
 import { ReplaySubject, Subject, Subscription } from "rxjs";
 
+export const ackError = (msg: string): Subject<void> => {
+  const e$ = new Subject<void>();
+  e$.error(new Error(msg));
+  return e$;
+}
+
 export default class GlbState<T> {
   readonly name: string;
   readonly mdl$ = new ReplaySubject<T>();

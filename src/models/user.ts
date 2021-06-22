@@ -41,7 +41,7 @@ const cmpl = (m: Mdl | undefined) => base.cmpl(m);
 // and it will error if it has observed an error (note same as Subject).
 // https://rxjs.dev/api/index/class/ReplaySubject
 
-let state = new GlbState<Mdl>('user)');
+let state = new GlbState<Mdl>('user');
 
 const hndlError = (e: any) => { // special handling due to initial session check
   let error;

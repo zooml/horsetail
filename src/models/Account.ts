@@ -1,12 +1,11 @@
 import { ajax } from 'rxjs/ajax';
-import { EMPTY, ReplaySubject, Subject } from 'rxjs';
+import { ReplaySubject, Subject } from 'rxjs';
 import { baseUrl } from '../utils/config';
 import * as mdl from './mdl';
 import * as descs from './descs';
 import * as actts from './actts';
 import retrier from './retrier';
 import * as org from './org';
-import { catchError } from 'rxjs/operators';
 import { CATEGORIES, Category, CATEGORY_IDS, Get, CloseGet } from '../api/accounts';
 import { toDate } from '../common/acctdate';
 import GlbState from './glbstate';
@@ -125,7 +124,7 @@ export const get$ = (): ReplaySubject<Chart> => state.mdl$;
 // load chart of accounts for current or future org (call org.set())
 // returns an ack stream that will report error or success (complete)
 // can call again on error
-// show alert (set retry action) before reporting error
+// optional show alert (set retry action) before reporting error
 export const load = (overrideAlert?: Alert): Subject<void> => {
   if (!state.ack$) {
     state.ack$ = new Subject();
@@ -148,7 +147,6 @@ export const load = (overrideAlert?: Alert): Subject<void> => {
   }
   return state.ack$;
 }
-
 
 export const post = (acct: Mdl) => {
 

@@ -1,14 +1,14 @@
 import * as mdl from './mdl'
 import { ajax } from 'rxjs/ajax';
 import { baseUrl } from '../utils/config';
-import { ReplaySubject, Subject, Subscription } from 'rxjs';
+import { ReplaySubject, Subject } from 'rxjs';
 import * as user from './user';
 import retrier from './retrier';
 import * as descs from './descs';
 import * as actts from './actts';
 import { CloseGet, FundGet, Get, Post, RoleGet, TldrGet, UserGet } from '../api/orgs';
-import { toDate } from '../common/acctdate';
-import GlbState from './glbstate';
+import { fromDate, toDate } from '../common/acctdate';
+import GlbState, { ackError } from './glbstate';
 
 export type Role = {
   id: number;
@@ -106,11 +106,24 @@ export type Mdl = TldrMdl & {
   funds: mdl.Arr<Fund>;
   clos: mdl.Arr<Close>;
 };
+export type MdlPost = {
+  name: string;
+  begAt: Date;
+  desc?: descs.MdlPost;
+}
 const fromGet = (g: Get): Mdl => ({
   ...tldrFromGet(g),
   funds: mdl.makeArr(g.funds, fromFundGet),
   clos: mdl.makeArr(g.clos, fromCloseGet),
 });
+const toPost = (mp: MdlPost): Post => {
+  const p: Post = {
+    name: mp.name,
+    begAt: fromDate(mp.begAt)
+  };
+  if (mp.desc) p.desc = descs.toPost(mp.desc);
+  return p;
+};
 const cmpl = (m: Mdl) => {
   mdl.arrCmpl(m.funds, cmplFund);
   mdl.arrCmpl(m.clos, cmplClose);
@@ -123,6 +136,7 @@ const tldrsCmpl = (m: TldrMdls) => mdl.hashCmpl(m, tldrCmpl);
 
 let mState = new GlbState<Mdl>('org');
 let tmsState = new GlbState<TldrMdls>('tldr orgs');
+let postAck$: Subject<void> | undefined;
 
 // the returned stream will emit a single next with the org tldrs (when loaded)
 // and is completed when the user signs out (no error reported here)
@@ -172,18 +186,13 @@ export const clear$ = (): ReplaySubject<Mdl> => {
   return mState.mdl$;
 }
 
-const ackError = (): Subject<void> => {
-  const e$ = new Subject<void>();
-  e$.error(new Error('invalid state, set org in progress'));
-  return e$;
-}
-
 // gets given org and places in get$()/clear$() stream
 // returns ack$ that is called on error or completed on success
 // note that this will automatically call clear$() if prev org 
 // still set, in which case get$() will need to be called
 export const set = (id: string): Subject<void> => {
-  if (mState.ack$) return ackError();
+  if (postAck$) return ackError('org: invalid state, post in progress');
+  if (mState.ack$) return ackError('org: invalid state, set org in progress');
   if (mState.mdl) clear$(); // existing org
   mState.ack$ = new Subject<void>();
   user.get$().subscribe({ // user signed in event
@@ -203,14 +212,41 @@ export const set = (id: string): Subject<void> => {
   return mState.ack$;
 };
 
-export const post = (org: Post) => {
-  ajax.post<Get>(`${baseUrl}/orgs`)
+const addToTldrMdls = (g: TldrGet) => {
+  if (!tmsState.mdl) throw new Error('org: post completed and tldr orgs missing');
+  const m = tldrFromGet(g);
+  mdl.addToMdl(tmsState.mdl, m, m.id);
+}
+
+// create an org, on success this will add to the tldrs orgs and if there
+// is no current org it will make it the current org (i.e. push into the stream)
+// returns an ack$ that will report error or success (complete)
+export const post = (mp: MdlPost): Subject<void> => {
+  if (mState.ack$) return ackError('org: invalid state, another operation in progress');
+  if (postAck$) return ackError('org: invalid state, previous post still in progress');
+  if (!tmsState.mdl) return ackError('org: invalid state, must get tldr orgs first');
+  postAck$ = new Subject();
+  const subscpt = ajax.post<Get>(`${baseUrl}/orgs`, toPost(mp))
     .pipe(retrier())
     .subscribe({
-      next: org => {
-        // TODO oId = org.id; 
-        // TODO
-        // org$.next(fromSvc(org));
-      }});
-
+      next: rsp => {
+        subscpt.unsubscribe(); // this is async so subscpt always set
+        const g = rsp.response;
+        addToTldrMdls(g);
+        const tmp$ = postAck$;
+        postAck$ = undefined;
+        if (!mState.mdl) { // since no current org, do set() action
+          mState.ack$ = tmp$;
+          mState.next(fromGet(g));
+        } else {
+          tmp$?.complete();
+        }
+      },
+      error: e => {
+        const tmp$ = postAck$;
+        postAck$ = undefined;
+        tmp$?.error(e);
+      }
+    });
+  return postAck$;
 };

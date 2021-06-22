@@ -22,6 +22,12 @@ export const GlobalCss = withStyles({
     },
     '.pubContent': {
       backgroundImage: 'url(/static/img/horsetail-grass.jpg)'
+    },
+    '.userCtl': {
+      width: '8em'
+    },
+    '.userMenu': {
+      width: '20em'
     }
   },
 })(() => null);

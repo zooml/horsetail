@@ -19,6 +19,7 @@ import * as user from './models/user';
 import { Box } from "@material-ui/core"; // must be last import
 import horsetail from '../public/static/images/horsetail-grass.jpg';
 import PubContent from "./pubsite/PubContent";
+import UserMenu from "./components/UserMenu";
 
 const App = () => {
   return (
@@ -56,7 +57,8 @@ const App = () => {
         <Box>hi</Box>
         <Box>bye</Box>
       </Container> */}
-      <PubContent />
+      {/* <PubContent /> */}
+      <UserMenu />
       <Alerter />
     </div>
   );

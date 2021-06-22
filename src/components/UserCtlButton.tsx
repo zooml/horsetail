@@ -58,11 +58,15 @@ const UserCtlDialog = ({open, onClose}: UserCtlDialogProps) => {
   );
 }
 
-const UserCtlButton = () => {
+export type Props = {
+  [k: string]: any
+};
+
+const UserCtlButton = (props: Props) => {
   const [open, setOpen] = useState(false);
   const onClose = () => setOpen(false);
   return (
-    <div>
+    <div {...props}>
       <Button disabled={open} onClick={() => setOpen(true)} variant="outlined" >
         Sign In
       </Button>

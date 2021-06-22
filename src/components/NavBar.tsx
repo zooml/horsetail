@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
-import AppBar from '@material-ui/core/AppBar'
-import Toolbar from '@material-ui/core/Toolbar'
-import Box from '@material-ui/core/Box'
+import { useEffect, useState } from 'react';
+import AppBar from '@material-ui/core/AppBar';
+import Toolbar from '@material-ui/core/Toolbar';
 import * as org from '../models/org';
 import { Subscription } from 'rxjs';
+import UserCtl from './UserCtl';
+import Box from '@material-ui/core/Box';
 
 const OrgName = () => {
   const [name, setName] = useState('');
@@ -21,18 +22,20 @@ const OrgName = () => {
     return () => subscrpts.forEach(s =>s.unsubscribe());
   });
   return (
-    <Box>${name}</Box>
+    <Box>{name}</Box>
   );
 };
 
 const NavBar = () => {
-  return(
+  return (
     <AppBar position="static">
-        <Toolbar>
-          <OrgName />
-        </Toolbar>
+      <Toolbar>
+        <OrgName />
+        <Box style={{flex: 1}}/>
+        <UserCtl />
+      </Toolbar>
     </AppBar>
-  )
-}
+  );
+};
 
 export default NavBar;
