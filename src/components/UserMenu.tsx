@@ -1,6 +1,7 @@
 import { ListItemIcon, Typography } from '@material-ui/core';
-import { MenuItem, Menu, Paper, Button } from '@material-ui/core';
-import SendIcon from '@material-ui/icons/Send';
+import { MenuItem, Menu, Paper, IconButton } from '@material-ui/core';
+import AccountCircleIcon from '@material-ui/icons/AccountCircle';
+import ExitToAppIcon from '@material-ui/icons/ExitToApp';
 import React, { useState } from 'react';
 
 export type Props = {
@@ -11,37 +12,29 @@ const UserMenu = (props: Props) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => setAnchorEl(event.currentTarget);
   const handleClose = () => setAnchorEl(null);
+  // MuiListItemIcon-root min-width: 56px
   return (
     <div>
-      <Button 
+      <IconButton 
         aria-controls="user-menu" aria-haspopup="true"
-        onClick={handleClick} variant="outlined">
-        G
-      </Button>
+        onClick={handleClick}>
+        <AccountCircleIcon/>
+      </IconButton>
       <Paper {...props} className="userMenu">
         <Menu
           id="user-menu"
           anchorEl={anchorEl}
           keepMounted
+          getContentAnchorEl={null}
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+          transformOrigin={{ vertical: "top", horizontal: "center" }}
           open={Boolean(anchorEl)}
           onClose={handleClose}>
-          <MenuItem>
-            <ListItemIcon>
-              <SendIcon fontSize="small" />
-            </ListItemIcon>
-            <Typography variant="inherit" noWrap>Orgs</Typography>
-          </MenuItem>
-          <MenuItem>
-            <ListItemIcon>
-              <SendIcon fontSize="small" />
-            </ListItemIcon>
-            <Typography variant="inherit" noWrap>My org number 1</Typography>
-          </MenuItem>
           <MenuItem onClick={() => console.log('sign out')}>
             <ListItemIcon>
-              <SendIcon fontSize="small" />
+              <ExitToAppIcon fontSize="small" />
             </ListItemIcon>
-            <Typography variant="inherit" noWrap>Sign Out</Typography>
+            <Typography variant="inherit" noWrap>Sign out</Typography>
           </MenuItem>
         </Menu>
       </Paper>

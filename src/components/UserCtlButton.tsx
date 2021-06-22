@@ -67,7 +67,7 @@ const UserCtlButton = (props: Props) => {
   const onClose = () => setOpen(false);
   return (
     <div {...props}>
-      <Button disabled={open} onClick={() => setOpen(true)} variant="outlined" >
+      <Button color="inherit" disabled={open} onClick={() => setOpen(true)} variant="outlined" >
         Sign In
       </Button>
       <UserCtlDialog open={open} onClose={onClose}/>

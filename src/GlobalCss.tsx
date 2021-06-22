@@ -23,11 +23,21 @@ export const GlobalCss = withStyles({
     '.pubContent': {
       backgroundImage: 'url(/static/img/horsetail-grass.jpg)'
     },
+    '.appMenu': {
+      width: '30em',
+      maxWidth: '30em'
+    },
     '.userCtl': {
       width: '8em'
     },
     '.userMenu': {
       width: '20em'
+    },
+    '.MuiListItemIcon-root': {  // for menus
+      minWidth: '30px'
+    },
+    '.menuItemNoIcon': {
+      minWidth: '30px'
     }
   },
 })(() => null);
