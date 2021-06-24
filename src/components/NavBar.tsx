@@ -1,42 +1,46 @@
 import { useEffect, useState } from 'react';
 import AppBar from '@material-ui/core/AppBar';
 import Toolbar from '@material-ui/core/Toolbar';
-import * as org from '../models/org';
-import { Subscription } from 'rxjs';
 import UserCtl from './UserCtl';
 import AppMenu from './AppMenu';
-import DateRange from './DateRange';
+import DateRng from './DateRng';
 import PL from './PL';
 import Box from '@material-ui/core/Box';
+import { get$ as orgGet$ } from '../models/org';
+import * as org from '../models/org';
 
-const OrgName = () => {
+const OrgName = ({org}: {org: org.Mdl | null}) => {
   const [name, setName] = useState('');
   useEffect(() => {
-    // need this to execute when name='' in order to pick up new org.get$() stream
-    const subscrpts: Subscription[] = [];
-    subscrpts.push(org.get$().subscribe({
-      next: (o: org.Mdl) => { // this might be called before above subscribe returns
-        setName(o.name);
-        subscrpts.push(o.chg$.subscribe({next: (c: org.Chg) => {
-          if (c.name) setName(c.name);
-        }}));
-      },
-      complete: () => setName('') // need this to cause useEffect to be recalled
-    }));
-    return () => subscrpts.forEach(s => s.unsubscribe());
-  });
+    if (org) {
+      setName(org.name);
+      const subscpt = org.chg$.subscribe({
+        next: (c: org.Chg) => {if (c.name) setName(c.name)}
+      });
+      return () => subscpt.unsubscribe();
+    }
+    setName('');
+  }, [org]);
   return (
     <Box>{name}</Box>
   );
 };
 
 const NavBar = () => {
+  const [org, setOrg] = useState<org.Mdl | null>(null);
+  useEffect(() => {
+    const subscpt = orgGet$().subscribe({
+      next: org => setOrg(org),
+      complete: () => setOrg(null)
+    });
+    return subscpt.unsubscribe();
+  });
   return (
     <AppBar position="static">
-      <Toolbar style={{display: 'flex'}}>
+      <Toolbar>
         <AppMenu />
-        <OrgName />
-        <DateRange />
+        <OrgName org={org} />
+        <DateRng />
         <PL style={{flexGrow: 1, textAlign: 'center'}}/>
         <UserCtl />
       </Toolbar>

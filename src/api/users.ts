@@ -1,7 +1,7 @@
 import * as base from './base';
 import * as desc from './desc';
 
-type Core = {
+export type Core = {
   email: string;
   fName: string;
   lName?: string;
@@ -21,5 +21,5 @@ export type Creds = {
 };
 
 export type Post = Creds & Core & {
-  desc: desc.Post;
+  desc?: desc.Post;
 };

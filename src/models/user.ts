@@ -4,7 +4,7 @@ import { baseUrl } from '../utils/config';
 import { ReplaySubject, Subject } from 'rxjs';
 import retrier from './retrier';
 import * as alert from '../models/alert';
-import { Get, Base, Creds, Post } from '../api/users';
+import { Get, Base, Creds, Post, Core } from '../api/users';
 import * as descs from './descs';
 import GlbState from './glbstate';
 
@@ -15,7 +15,9 @@ export type Chg = {
 };
 
 export type Mdl = base.Rsc<Chg> & Base;
-
+export type MdlPost = Creds & Core & {
+  desc?: descs.MdlPost;
+};
 const fromGet = (g: Get): Mdl => {
   const m: Mdl = {
     ...base.fromGet(g),
@@ -27,6 +29,16 @@ const fromGet = (g: Get): Mdl => {
   };
   if (g.lName) m.lName = g.lName;
   return m;
+};
+const toPost = (mp: MdlPost): Post => {
+  const p: Post = {
+    email: mp.email,
+    pswd: mp.pswd,
+    fName: mp.fName,
+  };
+  if (mp.lName) p.lName = mp.lName;
+  if (mp.desc) p.desc = descs.toPost(mp.desc);
+  return p;
 };
 const cmpl = (m: Mdl | undefined) => base.cmpl(m);
 
@@ -107,13 +119,13 @@ const checkStateErrors = (api: number, email?: string) => {
   return false;
 }
 
-export const register = (p: Post): Subject<void> => {
+export const register = (mp: MdlPost): Subject<void> => {
   const ack$ = new Subject<void>();
   if (checkStateErrors(0)) {
     ack$.error(new Error('invalid state for register'));
     return ack$;
   }
-  state.subscpt = ajax.post<void>(`${baseUrl}/users`, p)
+  state.subscpt = ajax.post<void>(`${baseUrl}/users`, toPost(mp))
     .pipe(retrier())
     .subscribe({
       next: () => {

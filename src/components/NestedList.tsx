@@ -75,7 +75,7 @@ const AccountItem = ({acct, level}: {acct: Mdl, level: number}) => {
       <ButtonBase focusRipple className={classes.acct}>
         <Typography className={classes.acctNum}>{acct.num}</Typography>
         <Typography className={classes.acctNum} style={{flex: '1', textAlign: 'left'}}>{acct.name}</Typography>
-        <DrCr amount={10} asCr={acct.isCr} asSum={isParent} className={classes.drCr} />
+        <DrCr amt={10} asCr={acct.isCr} asSum={isParent} className={classes.drCr} />
       </ButtonBase>
     </ListItem>
 )};
@@ -172,7 +172,7 @@ export  function NestedList() {
                   <StarBorder />
                 </ListItemIcon>
                 <ListItemText primary="Hoo" />
-                <DrCr amount={123.45} asCr />
+                <DrCr amt={123.45} asCr />
                 {/* <ListItemText style={{textAlign: 'right', textDecoration: 'underline'}} primary="123.45" /> */}
               </ListItem>
             </List>

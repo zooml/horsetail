@@ -48,7 +48,7 @@ const UserCtlDialog = ({open, onClose}: UserCtlDialogProps) => {
         <Tab label="Register" />
         <Tab label="Reset Password" />
       </Tabs>
-      <form noValidate onSubmit={onSubmit} >
+      <form noValidate onSubmit={onSubmit}>
         { tabIdx === 0 && <CredsPanel formCtl={formCtl} showPswd /> }
         { tabIdx === 1 && <CredsPanel formCtl={formCtl} showPswd isReg /> }
         { tabIdx === 2 && <CredsPanel formCtl={formCtl} /> }

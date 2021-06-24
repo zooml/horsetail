@@ -2,11 +2,11 @@ import * as base from './base';
 import * as desc from './desc';
 import * as actt from './actt';
 
-export const CATEGORY_IDS = Object.freeze({
+export const CAT_IDS = Object.freeze({
   ASSET: 1,
   LIABILITY: 2,
   EQUITY: 3,
-  INCOME: 4,
+  REVENUE: 4,
   EXPENSE: 5
 });
 
@@ -17,11 +17,11 @@ export type Category = {
 };
 
 export const CATEGORIES: {[key: number]: Category} = Object.freeze({
-  1: {id: 1, tag: 'assets', isCr: false},
-  2: {id: 2, tag: 'liabilities', isCr: true},
-  3: {id: 3, tag: 'equity', isCr: true},
-  4: {id: 4, tag: 'revenue', isCr: true},
-  5: {id: 5, tag: 'expenses', isCr: false}
+  [CAT_IDS.ASSET]: {id: CAT_IDS.ASSET, tag: 'assets', isCr: false},
+  [CAT_IDS.LIABILITY]: {id: CAT_IDS.LIABILITY, tag: 'liabilities', isCr: true},
+  [CAT_IDS.EQUITY]: {id: CAT_IDS.EQUITY, tag: 'equity', isCr: true},
+  [CAT_IDS.REVENUE]: {id: CAT_IDS.REVENUE, tag: 'revenue', isCr: true},
+  [CAT_IDS.EXPENSE]: {id: CAT_IDS.EXPENSE, tag: 'expenses', isCr: false}
 });
 
 export type CloseGet = {

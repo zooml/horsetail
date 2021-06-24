@@ -36,9 +36,14 @@ export const GlobalCss = withStyles({
     '.MuiListItemIcon-root': {  // for menus
       minWidth: '30px'
     },
+    '.MuiButton-startIcon': {
+      marginRight: 0
+    },
     '.menuItemNoIcon': {
       minWidth: '30px'
+    },
+    '.dateRng': {
+      width: '20em'
     }
   },
 })(() => null);
-

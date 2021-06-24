@@ -6,7 +6,7 @@ import * as descs from './descs';
 import * as actts from './actts';
 import retrier from './retrier';
 import * as org from './org';
-import { CATEGORIES, Category, CATEGORY_IDS, Get, CloseGet } from '../api/accounts';
+import { CATEGORIES, Category, CAT_IDS, Get, CloseGet } from '../api/accounts';
 import { toDate } from '../common/acctdate';
 import GlbState from './glbstate';
 import { Alert } from './alert';
@@ -41,7 +41,7 @@ const fromGet = (g: Get): Mdl => ({
   name: g.name,
   begAt: toDate(g.begAt),
   desc: descs.fromGet(g.desc),
-  cat: CATEGORIES[CATEGORY_IDS.ASSET], // default, fix in inherit parent
+  cat: CATEGORIES[CAT_IDS.ASSET], // default, fix in inherit parent
   isCr: false, // default, fix in inherit parent
   clos: mdl.makeArr(g.clos, fromCloseGet),
   actts: mdl.makeArr(g.actts, actts.fromGet),

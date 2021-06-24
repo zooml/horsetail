@@ -12,7 +12,6 @@ const UserMenu = (props: Props) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => setAnchorEl(event.currentTarget);
   const handleClose = () => setAnchorEl(null);
-  // MuiListItemIcon-root min-width: 56px
   return (
     <div>
       <IconButton 
