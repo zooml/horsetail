@@ -2,7 +2,7 @@ import * as base from './mdl'
 import { ajax } from 'rxjs/ajax';
 import { baseUrl } from '../utils/config';
 import { ReplaySubject, Subject } from 'rxjs';
-import retrier from './retrier';
+import retrier, { RetryOpts } from './retrier';
 import * as alert from '../models/alert';
 import { Get, Base, Creds, Post, Core } from '../api/users';
 import * as descs from './descs';
@@ -148,8 +148,12 @@ export const signIn = ({email, pswd}: Creds): Subject<void> => {
     return ack$;
   }
   state.ack$ = ack$;
+  const opts: RetryOpts = {ovrdAlert: {
+    code: 1201, // TODO put exception in common apperrs.ts
+    alert: {severity: 1, message: 'User email or password not recognized.'}
+  }};
   state.subscpt = ajax.post<void>(`${baseUrl}/sessions`, {email, pswd})
-    .pipe(retrier())
+    .pipe(retrier(opts))
     .subscribe({
       next: () => load(), // chain state to GET user
       error: e => state.error(e)

@@ -36,8 +36,8 @@ export const GlobalCss = withStyles({
     '.MuiListItemIcon-root': {  // for menus
       minWidth: '30px'
     },
-    '.MuiButton-startIcon': {
-      marginRight: 0
+    '.MuiButton-endIcon': {
+      marginLeft: 0
     },
     '.menuItemNoIcon': {
       minWidth: '30px'

@@ -51,6 +51,7 @@ export const FIELDS = {
   pswd: {kind: 'string', name: 'pswd', min: 8, max: 30,
     regex: /(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[^a-zA-Z0-9])/
   } as StrLimit,
+  signinPswd: {kind: 'string', name: 'pswd', min: 1, max: 30} as StrLimit,
   ePswd: {kind: 'string', name: 'ePswd', min: 8, max: 9999} as StrLimit,
   fName: {kind: 'string', name: 'fName', min: 1, max: 20, regex: NAME_REGEXP} as StrLimit,
   lName: {kind: 'string', name: 'lName', min: 0, max: 40, regex: NAME_REGEXP} as StrLimit,

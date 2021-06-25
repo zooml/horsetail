@@ -1,38 +1,51 @@
 import { ChangeEvent, useEffect, useState } from 'react';
 import { TextField } from '@material-ui/core';
 import FormCtl from '../formctl';
-import { StrLimit } from '../../common/limits';
-import { validStr } from '../../common/validators';
+import { FIELDS, StrLimit } from '../../common/limits';
+import { toCap, validStr } from '../../common/validators';
 
 type Props = {
   formCtl: FormCtl;
-  fieldKey: string;
   limit: StrLimit;
-  [k: string]: any;
+  label?: string;
+  fieldProps?: {[k: string]: any};
 };
 
-const StrField = ({formCtl, fieldKey, limit, ...other}: Props) => {
+const StrField = ({formCtl, limit, label, fieldProps}: Props) => {
   const [isError, setIsError] = useState(false);
   useEffect(() => {
-    formCtl.addField(fieldKey);
-    return () => formCtl.removeField(fieldKey);
-  }, [formCtl, fieldKey]);
+    formCtl.addField(limit.name);
+    return () => formCtl.removeField(limit.name);
+  }, [formCtl, limit.name]);
   const onChange = (event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>) => {
     const v = event.target.value;
-    let isV = !!v;
-    if (isV) { // non-empty
-      isV = validStr(limit, false, v);
-      setIsError(!isV);
-    } else { // value is not valid but don't show error (it's obvious to user)
+    const isValid = validStr(limit, false, v);
+    if (v) { // non-empty: display error
+      setIsError(!isValid);
+    } else { // empty: don't display if error (it's obvious to user)
       setIsError(false);
     }
-    formCtl.onValueChg(fieldKey, isV ? v : undefined);
+    formCtl.onValueChg(limit.name, isValid ? v : undefined);
   };
+  const inputProps: {[k: string]: any} = {
+    maxLength: limit.max
+  };
+  let type = 'text';
+  const misc: {[k: string]: any} = {};
+  if (limit === FIELDS.email) {
+    inputProps.autoComplete = 'new-email';
+    misc.autoComplete = 'new-email';
+  } else if (limit === FIELDS.pswd) {
+    type = 'password';
+    misc.autoComplete = 'new-password';
+  }
+  if (limit.min) misc.required = true;
+  const lbl = label ?? toCap(limit.name);
   return (
-    <TextField margin="dense" label={limit.name} type="text"
-      {...other} error={isError} required fullWidth
+    <TextField margin="dense" label={lbl} type={type} error={isError} fullWidth
+      {...fieldProps} {...misc}
       onChange={onChange}
-      inputProps={{maxLength: limit.max}} />
+      inputProps={inputProps} />
   );
 };
 

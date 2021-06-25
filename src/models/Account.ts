@@ -4,7 +4,7 @@ import { baseUrl } from '../utils/config';
 import * as mdl from './mdl';
 import * as descs from './descs';
 import * as actts from './actts';
-import retrier from './retrier';
+import retrier, { OvrdAlert } from './retrier';
 import * as org from './org';
 import { CATEGORIES, Category, CAT_IDS, Get, CloseGet } from '../api/accounts';
 import { toDate } from '../common/acctdate';
@@ -125,14 +125,13 @@ export const get$ = (): ReplaySubject<Chart> => state.mdl$;
 // returns an ack stream that will report error or success (complete)
 // can call again on error
 // optional show alert (set retry action) before reporting error
-export const load = (overrideAlert?: Alert): Subject<void> => {
+export const load = (ovrdAlert?: OvrdAlert): Subject<void> => {
   if (!state.ack$) {
     state.ack$ = new Subject();
     org.get$().subscribe({
       next: org => {
-        const opts = overrideAlert ? {overrideAlert} : {};
         state.subscpt = ajax.getJSON<Get[]>(`${baseUrl}/accounts`, {'X-OId': org.id})
-          .pipe(retrier(opts))
+          .pipe(retrier({ovrdAlert}))
           .subscribe({
             next: gs => state.next(chartFromGets(gs)),
             error: e => state.error(e)

@@ -21,9 +21,9 @@ const DatePeriod = () => {
         aria-controls="date-period-menu"
         aria-label="date-period"
         color="inherit"
-        style={{textTransform: 'none'}}
+        style={{textTransform: 'none', paddingRight: 0}}
         onClick={handleClick}
-        startIcon={<ArrowDropDownIcon/>}>
+        endIcon={<ArrowDropDownIcon/>}>
         {PERIOD_LABELS[selectedIndex]}</Button>
       <Menu
         id="date-period-menu"
@@ -45,9 +45,20 @@ const DatePeriod = () => {
   );
 }
 
+// https://stackoverflow.com/questions/49491569/disable-specific-days-in-material-ui-calendar-in-react
+// function disableWeekends(date) {
+//   return date.getDay() === 0 || date.getDay() === 6;
+// }
+
+// const DatePickerExampleDisableDates = () => (
+//   <div>
+//     <DatePicker hintText="Weekends Disabled" shouldDisableDate={disableWeekends} />
+//     <DatePicker hintText="Random Dates Disabled" shouldDisableDate={disableRandomDates} />
+//   </div>
+// );
+
 const DateRng = () => {
 
-  // TODO diplaying like 'block'!?!?!
   return (
     <div className="dateRng">
       <IconButton color="inherit" style={{padding: 0}}><ChevronLeftIcon/></IconButton>

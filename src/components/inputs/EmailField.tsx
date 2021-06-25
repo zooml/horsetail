@@ -30,7 +30,7 @@ const EmailField = ({formCtl, fieldKey, ...other}: Props) => {
   };
   return (
     <TextField margin="dense" label="Email" type="text"
-      autoComplete="new-email"
+      // autoComplete="new-email"
       {...other} error={isError} required fullWidth
       onChange={onChange}
       inputProps={{autoComplete: 'new-email', maxLength: FIELDS.email.max}} />
