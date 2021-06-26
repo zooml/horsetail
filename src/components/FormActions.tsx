@@ -5,13 +5,15 @@ import SubmitButton from "./SubmitButton";
 type Props = {
   formCtl: FormCtl;
   onCancel: () => void;
+  disabled?: boolean;
 };
 
-const FormActions = ({formCtl, onCancel}: Props) => {
+const FormActions = ({formCtl, onCancel, disabled}: Props) => {
   return (
     <DialogActions>
-      <Button color="primary" variant="text" onClick={onCancel} >Cancel</Button>
-      <SubmitButton formCtl={formCtl} />
+      <Button color="primary" variant="text"
+        onClick={onCancel} disabled={disabled} >Cancel</Button>
+      <SubmitButton formCtl={formCtl} disabled={disabled} />
     </DialogActions>
   );
 };

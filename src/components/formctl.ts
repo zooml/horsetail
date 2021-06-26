@@ -5,9 +5,9 @@ type FormValues = {
 export default class FormCtl {
   values: FormValues = {}; // can be accessed when all fields are valid
   isValids: {[k: string] :boolean} = {};
-  onAllAreValid = (valid: boolean) => {};
+  onAllValid = (valid: boolean) => {};
 
-  checkAllAreValid(): boolean | undefined { // private
+  checkAllValid(): boolean | undefined { // private
     let isAllValid: boolean | undefined = undefined;
     for (const isValid of Object.values(this.isValids)) {
       if (isAllValid === undefined) {
@@ -21,16 +21,16 @@ export default class FormCtl {
     return isAllValid;
   }
 
-  allAreValid(): boolean {
-    return !!this.checkAllAreValid();
+  areAllValid(): boolean {
+    return !!this.checkAllValid();
   }
   
-  setOnAllAreValid(f: (valid: boolean) => void) {
-    this.onAllAreValid = f;
+  setOnAllValid(f: (valid: boolean) => void) {
+    this.onAllValid = f;
   }
 
-  clearOnAllAreValid() {
-    this.onAllAreValid = (valid: boolean) => {};
+  clearOnAllValid() {
+    this.onAllValid = (valid: boolean) => {};
   }
 
   onValueChg(key: string, value?: any) {
@@ -40,36 +40,36 @@ export default class FormCtl {
     }
     if (value === undefined) { // no longer valid
       if (this.isValids[key]) { // changed
-        const tmp = this.checkAllAreValid();
+        const tmp = this.checkAllValid();
         this.isValids[key] = false;
         if (tmp) { // was all true, now not
-          this.onAllAreValid(false);
+          this.onAllValid(false);
         }
       }
     } else {
       this.values[key] = value;
       if (!this.isValids[key]) { // changed
         this.isValids[key] = true;
-        if (this.checkAllAreValid()) { // must have gone all true
-          this.onAllAreValid(true);
+        if (this.checkAllValid()) { // must have gone all true
+          this.onAllValid(true);
         }
       }
     }
   }
 
-  // add field assuming field is initially invalid
+  // add field assuming field is initially invalid (unless not required)
   // call back immediately if default value is valid
   // must be called before onValueChg (so all are valid is set appropriately)
-  addField(key: string) {
+  addField(key: string, notReq?: boolean) {
     if (key in this.isValids) {
       console.log(`multiple add of form field ${key}`); // WARN
       return;
     }
     // earlier fields may have called back already with valid default values
-    const tmp = this.checkAllAreValid();
-    this.isValids[key] = false;
+    const tmp = this.checkAllValid();
+    this.isValids[key] = notReq ?? false;
     if (tmp) { // was all true, now not
-      this.onAllAreValid(false);
+      this.onAllValid(false);
     }
   }
 
@@ -79,16 +79,16 @@ export default class FormCtl {
       if (isV === undefined) {
         console.log(`multiple remove of form field ${key}`); // WARN
       } else {
-        const before = this.checkAllAreValid();
+        const before = this.checkAllValid();
         delete this.values[key];
         delete this.isValids[key];
         if (before === undefined) { // was mixed
-          const after = this.checkAllAreValid();
+          const after = this.checkAllValid();
           if (after !== undefined) { // this was the odd one out
-            this.onAllAreValid(after);
+            this.onAllValid(after);
           }
         } else if (before && !Object.keys(this.isValids).length) { // last one and was true
-          this.onAllAreValid(false);
+          this.onAllValid(false);
         }
       }
     });

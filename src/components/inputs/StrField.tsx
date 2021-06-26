@@ -8,15 +8,16 @@ type Props = {
   formCtl: FormCtl;
   limit: StrLimit;
   label?: string;
+  noHint?: boolean;
   fieldProps?: {[k: string]: any};
 };
 
-const StrField = ({formCtl, limit, label, fieldProps}: Props) => {
+const StrField = ({formCtl, limit, label, noHint, fieldProps}: Props) => {
   const [isError, setIsError] = useState(false);
   useEffect(() => {
-    formCtl.addField(limit.name);
+    formCtl.addField(limit.name, !limit.min);
     return () => formCtl.removeField(limit.name);
-  }, [formCtl, limit.name]);
+  }, [formCtl, limit.name, limit.min]);
   const onChange = (event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>) => {
     const v = event.target.value;
     const isValid = validStr(limit, false, v);
@@ -32,6 +33,7 @@ const StrField = ({formCtl, limit, label, fieldProps}: Props) => {
   };
   let type = 'text';
   const misc: {[k: string]: any} = {};
+  let hint = noHint ? '' : limit.hint ?? '';
   if (limit === FIELDS.email) {
     inputProps.autoComplete = 'new-email';
     misc.autoComplete = 'new-email';
@@ -45,7 +47,7 @@ const StrField = ({formCtl, limit, label, fieldProps}: Props) => {
     <TextField margin="dense" label={lbl} type={type} error={isError} fullWidth
       {...fieldProps} {...misc}
       onChange={onChange}
-      inputProps={inputProps} />
+      inputProps={inputProps} helperText={hint} />
   );
 };
 

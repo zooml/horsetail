@@ -4,19 +4,20 @@ import FormCtl from "./formctl";
 
 type Props = {
   formCtl: FormCtl;
+  disabled?: boolean;
 };
 
 // TODO on submit via keyboard:
 // https://stackoverflow.com/questions/66888248/how-do-i-programatically-show-ripple-effect-with-material-ui
 
-const SubmitButton = ({formCtl}: Props) => {
-  const [allAreValid, setAllAreValid] = useState(formCtl.allAreValid());
+const SubmitButton = ({formCtl, disabled}: Props) => {
+  const [allAreValid, setAllValid] = useState(formCtl.areAllValid());
   useEffect(() => {
-    formCtl.setOnAllAreValid(valid => setAllAreValid(valid));
-    return () => formCtl.clearOnAllAreValid();
+    formCtl.setOnAllValid(valid => setAllValid(valid));
+    return () => formCtl.clearOnAllValid();
   }, [formCtl]);
   return (
-    <Button disabled={!allAreValid} type="submit" color="primary" variant="contained">
+    <Button disabled={disabled || !allAreValid} type="submit" color="primary" variant="contained">
       Apply
     </Button>
   );

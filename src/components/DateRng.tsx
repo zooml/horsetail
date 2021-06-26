@@ -21,7 +21,7 @@ const DatePeriod = () => {
         aria-controls="date-period-menu"
         aria-label="date-period"
         color="inherit"
-        style={{textTransform: 'none', paddingRight: 0}}
+        style={{textTransform: 'none', paddingRight: '4px'}}
         onClick={handleClick}
         endIcon={<ArrowDropDownIcon/>}>
         {PERIOD_LABELS[selectedIndex]}</Button>
@@ -60,10 +60,10 @@ const DatePeriod = () => {
 const DateRng = () => {
 
   return (
-    <div className="dateRng">
-      <IconButton color="inherit" style={{padding: 0}}><ChevronLeftIcon/></IconButton>
+    <div className="dateRng" >
       <Typography component="span">2021-06-01</Typography>
       <DatePeriod />
+      <IconButton color="inherit" style={{padding: 0}}><ChevronLeftIcon/></IconButton>
       <IconButton color="inherit" style={{padding: 0}}><ChevronRightIcon/></IconButton>
     </div>
   );

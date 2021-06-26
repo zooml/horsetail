@@ -4,7 +4,8 @@ import { baseUrl } from '../utils/config';
 import { ReplaySubject, Subject } from 'rxjs';
 import retrier, { RetryOpts } from './retrier';
 import * as alert from '../models/alert';
-import { Get, Base, Creds, Post, Core } from '../api/users';
+import { Get, Base, Post } from '../api/users';
+import * as sessions from '../api/sessions';
 import * as descs from './descs';
 import GlbState from './glbstate';
 
@@ -15,9 +16,7 @@ export type Chg = {
 };
 
 export type Mdl = base.Rsc<Chg> & Base;
-export type MdlPost = Creds & Core & {
-  desc?: descs.MdlPost;
-};
+export type MdlPost = Post;
 const fromGet = (g: Get): Mdl => {
   const m: Mdl = {
     ...base.fromGet(g),
@@ -38,6 +37,7 @@ const toPost = (mp: MdlPost): Post => {
   };
   if (mp.lName) p.lName = mp.lName;
   if (mp.desc) p.desc = descs.toPost(mp.desc);
+  else p.desc = {}; // TODO needed????
   return p;
 };
 const cmpl = (m: Mdl | undefined) => base.cmpl(m);
@@ -125,8 +125,12 @@ export const register = (mp: MdlPost): Subject<void> => {
     ack$.error(new Error('invalid state for register'));
     return ack$;
   }
+  const opts: RetryOpts = {ovrdAlert: {code: 1105, alert: {
+    severity: 1,
+    message: 'That email address is alredy registered.'
+  }}}
   state.subscpt = ajax.post<void>(`${baseUrl}/users`, toPost(mp))
-    .pipe(retrier())
+    .pipe(retrier(opts))
     .subscribe({
       next: () => {
         state.unsubscribe();
@@ -141,7 +145,7 @@ export const register = (mp: MdlPost): Subject<void> => {
   return ack$;
 };
 
-export const signIn = ({email, pswd}: Creds): Subject<void> => {
+export const signIn = ({email, pswd}: sessions.Post): Subject<void> => {
   const ack$ = new Subject<void>();
   if (checkStateErrors(1, email)) {
     ack$.error(new Error('invalid state for signIn'));

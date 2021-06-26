@@ -15,11 +15,7 @@ export type Base = Core & { // no conversion needed for fields so these can be u
 
 export type Get = base.Get & Base;
 
-export type Creds = {
-  email: string;
+export type Post = Core & {
   pswd: string;
-};
-
-export type Post = Creds & Core & {
   desc?: desc.Post;
 };

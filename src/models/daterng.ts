@@ -139,7 +139,7 @@ export class MdlCls {
         if (this.beg < this.lBndPeriodBeg) { // beg way before: move beg/end
           const e = this.period.inc(this.lBndPeriodBeg);
           this.postChg(this.lBndPeriodBeg, e);
-        } else { // beg still good, just check if no longer has prev
+        } else { // lBndBeg <= beg: beg still good, just check if no longer has prev
           if (this.hasPrev) this.postChg();
         }
       }

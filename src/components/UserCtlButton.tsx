@@ -1,27 +1,27 @@
 import { ChangeEvent, FormEvent, useState } from 'react';
 import { Button, Dialog, Tabs, Tab } from '@material-ui/core';
 import * as user from '../models/user';
+import * as users from '../api/users';
+import * as sessions from '../api/sessions';
 import FormCtl from './formctl';
-import EmailField from './inputs/EmailField';
-import PswdField from './inputs/PswdField';
-import { Creds } from '../api/users';
-import FormActions from './FormActions';
 import StrField from './inputs/StrField';
 import { FIELDS } from '../common/limits';
+import FormActions from './FormActions';
 
-type CredsPanelProps = {
+type PanelProps = {
   formCtl: FormCtl;
-  showPswd?: boolean;
-  isReg?: boolean;
+  mode: number; // 0 - signin, 1 - register, 2 - reset pswd
 };
 
-const CredsPanel = ({formCtl, showPswd, isReg}: CredsPanelProps) => {
+const Panel = ({formCtl, mode}: PanelProps) => {
   return (
     <div>
-        {/* <EmailField autoFocus formCtl={formCtl} fieldKey="email" /> */}
         <StrField fieldProps={{autoFocus: true}} formCtl={formCtl} limit={FIELDS.email} />
-        { showPswd && <StrField formCtl={formCtl} limit={isReg ? FIELDS.pswd : FIELDS.signinPswd} label="Password" /> }
-        {/* { showPswd && <PswdField formCtl={formCtl} fieldKey="pswd" isReg={isReg} /> } */}
+        { mode <= 1 && <StrField
+          formCtl={formCtl} limit={mode === 0 ? FIELDS.signinPswd : FIELDS.pswd}
+          label="Password" noHint={mode === 0} /> }
+        { mode === 1 && <StrField formCtl={formCtl} limit={FIELDS.fName} label="First name" /> }
+        { mode === 1 && <StrField formCtl={formCtl} limit={FIELDS.lName} label="Last name" /> }
     </div>
   );
 };
@@ -34,13 +34,16 @@ type UserCtlDialogProps = {
 const UserCtlDialog = ({open, onClose}: UserCtlDialogProps) => {
   const [tabIdx, setTabIdx] = useState(0);
   const [formCtl,] = useState(new FormCtl());
-  const onChg = (ce: ChangeEvent<{}>, v: any) => setTabIdx(v);
+  const onChg = (ce: ChangeEvent<{}>, v: any) => {
+    setTabIdx(v);
+    // setFormCtl(new FormCtl());
+  };
   const onSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); 
     switch (tabIdx) {
       // TODO disable buttons until error or complete (close)
-      case 0: user.signIn(formCtl.values as Creds); break;
-      // TODO case 1: user.register(formCtl.values as Creds); break;
+      case 0: user.signIn(formCtl.values as sessions.Post); break;
+      case 1: user.register(formCtl.values as users.Post); break;
       case 2: break; // TODO
     }
   }
@@ -54,9 +57,7 @@ const UserCtlDialog = ({open, onClose}: UserCtlDialogProps) => {
         <Tab label="Reset password" />
       </Tabs>
       <form noValidate onSubmit={onSubmit}>
-        { tabIdx === 0 && <CredsPanel formCtl={formCtl} showPswd /> }
-        { tabIdx === 1 && <CredsPanel formCtl={formCtl} showPswd isReg /> }
-        { tabIdx === 2 && <CredsPanel formCtl={formCtl} /> }
+        <Panel key={tabIdx} formCtl={formCtl} mode={tabIdx} />
         <FormActions formCtl={formCtl} onCancel={onClose} />
       </form>
     </Dialog>
