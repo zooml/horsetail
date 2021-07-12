@@ -30,8 +30,9 @@ export const GlobalCss = withStyles({
     '.userCtl': {
       width: '8em'
     },
-    '.userMenu': {
-      width: '20em'
+    '.MuiToolbar-gutters': {
+      paddingLeft: '1em',
+      paddingRight: '1em',
     },
     '.MuiListItemIcon-root': {  // for menus
       minWidth: '30px'
@@ -39,7 +40,7 @@ export const GlobalCss = withStyles({
     '.MuiButton-endIcon': {
       marginLeft: 0
     },
-    '.menuItemNoIcon': {
+    '.menuItemBlankIcon': {
       minWidth: '30px'
     },
     '.dateRng': {

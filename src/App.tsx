@@ -1,25 +1,25 @@
-import { Button, Card, CardMedia, Container, Paper } from "@material-ui/core";
+// import { Button, Card, CardMedia, Container, Paper } from "@material-ui/core";
 import CssBaseline from "@material-ui/core/CssBaseline";
 // import { withStyles } from "@material-ui/core/styles";
 import React from "react";
 // import { Subject } from "rxjs";
 import './App.css';
 import Alerter from "./components/Alerter";
-import NavBar from './components/NavBar';
+import NavBar from './components/navbar/NavBar';
 // import UserCtlButton from './components/UserCtlButton';
 import { GlobalCss } from "./GlobalCss";
 // import { accountsLoad } from "./models/account";
 // import * as alert from './models/alert';
-import * as user from './models/user';
+// import * as user from './models/user';
 // import NestedList from './components/NestedList'
 // import AccountsTree from './components/AccountsTree'
 //import DocumentsTable, {data, columns} from './components/DocumentsTable';
 //import VList from './components/VList'
 // import DrCr from './components/DrCr'
-import { Box } from "@material-ui/core"; // must be last import
-import horsetail from '../public/static/images/horsetail-grass.jpg';
-import PubContent from "./pubsite/PubContent";
-import UserMenu from "./components/UserMenu";
+// import { Box } from "@material-ui/core"; // must be last import
+// import horsetail from '../public/static/images/horsetail-grass.jpg';
+// import PubContent from "./pubsite/PubContent";
+// import UserMenu from "./components/navbar/UserMenu";
 
 const App = () => {
   return (
@@ -58,7 +58,6 @@ const App = () => {
         <Box>bye</Box>
       </Container> */}
       {/* <PubContent /> */}
-      <UserMenu />
       <Alerter />
     </div>
   );

@@ -1,6 +1,6 @@
 import { ChangeEvent, useEffect, useState } from 'react';
 import { TextField } from '@material-ui/core';
-import FormCtl from '../formctl';
+import FormCtl from '../dialog/formctl';
 
 type Props = {
   formCtl: FormCtl;

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Button, IconButton, Menu, MenuItem, Typography } from "@material-ui/core";
-import { PERIOD_IDS, PERIOD_LABELS } from "../models/daterng";
+import { PERIOD_IDS, PERIOD_LABELS } from "../../models/daterng";
 import ArrowDropDownIcon from '@material-ui/icons/ArrowDropDown';
 import ChevronLeftIcon from '@material-ui/icons/ChevronLeft';
 import ChevronRightIcon from '@material-ui/icons/ChevronRight';

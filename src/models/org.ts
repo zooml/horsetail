@@ -7,7 +7,7 @@ import retrier from './retrier';
 import * as descs from './descs';
 import * as actts from './actts';
 import { CloseGet, FundGet, Get, Post, RoleGet, TldrGet, UserGet } from '../api/orgs';
-import { fromDate, toDate } from '../common/acctdate';
+import { fromDate, toDate } from '../utils/clndate';
 import GlbState, { ackError } from './glbstate';
 
 export type Role = {

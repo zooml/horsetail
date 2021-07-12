@@ -1,6 +1,6 @@
 import { ChangeEvent, useEffect, useState } from 'react';
 import { TextField } from '@material-ui/core';
-import FormCtl from '../formctl';
+import FormCtl from '../dialog/formctl';
 import { FIELDS, StrLimit } from '../../common/limits';
 import { toCap, validStr } from '../../common/validators';
 
@@ -37,9 +37,10 @@ const StrField = ({formCtl, limit, label, noHint, fieldProps}: Props) => {
   if (limit === FIELDS.email) {
     inputProps.autoComplete = 'new-email';
     misc.autoComplete = 'new-email';
-  } else if (limit === FIELDS.pswd) {
+  } else if (limit.name === 'pswd') { // register and sign in
     type = 'password';
     misc.autoComplete = 'new-password';
+    label = 'Password';
   }
   if (limit.min) misc.required = true;
   const lbl = label ?? toCap(limit.name);

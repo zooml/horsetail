@@ -1,6 +1,6 @@
 import React from "react";
 import { Box } from "@material-ui/core";
-import DrCr from "./DrCr";
+import DrCr from "../DrCr";
 
 export type Props = {
   [k: string]: any;

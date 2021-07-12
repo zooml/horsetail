@@ -1,5 +1,5 @@
 import { Get } from '../api/actt';
-import { toDate } from '../common/acctdate';
+import { toDate } from '../utils/clndate';
 import * as descs from './descs';
 
 export type Mdl = {

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import UserCtlButton from './UserCtlButton'
 import UserMenu from './UserMenu'
-import * as user from '../models/user';
+import * as user from '../../models/user';
 
 const UserCtl = () => {
   const [state, setState] = useState(0);

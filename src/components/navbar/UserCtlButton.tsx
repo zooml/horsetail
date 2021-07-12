@@ -1,12 +1,13 @@
 import { ChangeEvent, FormEvent, useState } from 'react';
 import { Button, Dialog, Tabs, Tab } from '@material-ui/core';
-import * as user from '../models/user';
-import * as users from '../api/users';
-import * as sessions from '../api/sessions';
-import FormCtl from './formctl';
-import StrField from './inputs/StrField';
-import { FIELDS } from '../common/limits';
-import FormActions from './FormActions';
+import * as user from '../../models/user';
+import * as users from '../../api/users';
+import * as sessions from '../../api/sessions';
+import FormCtl from '../dialog/formctl';
+import StrField from '../inputs/StrField';
+import { FIELDS } from '../../common/limits';
+import FormActions from '../dialog/FormActions';
+import { Subject } from 'rxjs';
 
 type PanelProps = {
   formCtl: FormCtl;
@@ -18,8 +19,9 @@ const Panel = ({formCtl, mode}: PanelProps) => {
     <div>
         <StrField fieldProps={{autoFocus: true}} formCtl={formCtl} limit={FIELDS.email} />
         { mode <= 1 && <StrField
-          formCtl={formCtl} limit={mode === 0 ? FIELDS.signinPswd : FIELDS.pswd}
-          label="Password" noHint={mode === 0} /> }
+          formCtl={formCtl}
+          limit={mode === 0 ? FIELDS.signinPswd : FIELDS.pswd}
+          noHint={mode === 0} /> }
         { mode === 1 && <StrField formCtl={formCtl} limit={FIELDS.fName} label="First name" /> }
         { mode === 1 && <StrField formCtl={formCtl} limit={FIELDS.lName} label="Last name" /> }
     </div>
@@ -34,19 +36,21 @@ type UserCtlDialogProps = {
 const UserCtlDialog = ({open, onClose}: UserCtlDialogProps) => {
   const [tabIdx, setTabIdx] = useState(0);
   const [formCtl,] = useState(new FormCtl());
-  const onChg = (ce: ChangeEvent<{}>, v: any) => {
-    setTabIdx(v);
-    // setFormCtl(new FormCtl());
-  };
+  const [inProg, setInProg] = useState(false);
+  const onChg = (ce: ChangeEvent<{}>, v: any) => setTabIdx(v);
   const onSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); 
-    switch (tabIdx) {
-      // TODO disable buttons until error or complete (close)
-      case 0: user.signIn(formCtl.values as sessions.Post); break;
-      case 1: user.register(formCtl.values as users.Post); break;
-      case 2: break; // TODO
-    }
-  }
+    setInProg(true);
+    (tabIdx === 0 ?
+      user.signIn(formCtl.values as sessions.Post) : (
+        tabIdx === 1 ?
+          user.register(formCtl.values as users.Post) :
+          new Subject<void>() // TODO reset password
+      )).subscribe({
+        error: () => setInProg(false),
+        complete: onClose
+      });
+  };
   // TODO theme primary color Tabs TabIndicatorProps={{ style: { background: "#hex-color" } }}
   return (
     <Dialog onClose={onClose} open={open}>
@@ -58,7 +62,7 @@ const UserCtlDialog = ({open, onClose}: UserCtlDialogProps) => {
       </Tabs>
       <form noValidate onSubmit={onSubmit}>
         <Panel key={tabIdx} formCtl={formCtl} mode={tabIdx} />
-        <FormActions formCtl={formCtl} onCancel={onClose} />
+        <FormActions formCtl={formCtl} onCancel={onClose} disabled={inProg} />
       </form>
     </Dialog>
   );
@@ -70,13 +74,12 @@ export type Props = {
 
 const UserCtlButton = (props: Props) => {
   const [open, setOpen] = useState(false);
-  const onClose = () => setOpen(false);
   return (
     <div {...props}>
       <Button color="inherit" disabled={open} onClick={() => setOpen(true)} variant="outlined" >
         Sign In
       </Button>
-      <UserCtlDialog open={open} onClose={onClose}/>
+      <UserCtlDialog open={open} onClose={() => setOpen(false)}/>
     </div> 
   );
 };

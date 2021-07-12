@@ -7,7 +7,7 @@ import * as actts from './actts';
 import retrier, { OvrdAlert } from './retrier';
 import * as org from './org';
 import { CATEGORIES, Category, CAT_IDS, Get, CloseGet } from '../api/accounts';
-import { toDate } from '../common/acctdate';
+import { toDate } from '../utils/clndate';
 import GlbState from './glbstate';
 import { Alert } from './alert';
 

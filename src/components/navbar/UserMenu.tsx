@@ -3,6 +3,7 @@ import { MenuItem, Menu, Paper, IconButton } from '@material-ui/core';
 import AccountCircleIcon from '@material-ui/icons/AccountCircle';
 import ExitToAppIcon from '@material-ui/icons/ExitToApp';
 import React, { useState } from 'react';
+import * as user from '../../models/user';
 
 export type Props = {
   [k: string]: any
@@ -10,16 +11,16 @@ export type Props = {
 
 const UserMenu = (props: Props) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => setAnchorEl(event.currentTarget);
-  const handleClose = () => setAnchorEl(null);
+  const onButtonClick = (event: React.MouseEvent<HTMLButtonElement>) => setAnchorEl(event.currentTarget);
+  const onClose = () => setAnchorEl(null);
   return (
     <div>
       <IconButton 
         aria-controls="user-menu" aria-haspopup="true"
-        onClick={handleClick}>
+        onClick={onButtonClick}>
         <AccountCircleIcon/>
       </IconButton>
-      <Paper {...props} className="userMenu">
+      <Paper {...props}>
         <Menu
           id="user-menu"
           anchorEl={anchorEl}
@@ -28,8 +29,8 @@ const UserMenu = (props: Props) => {
           anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
           transformOrigin={{ vertical: "top", horizontal: "center" }}
           open={Boolean(anchorEl)}
-          onClose={handleClose}>
-          <MenuItem onClick={() => console.log('sign out')}>
+          onClose={onClose}>
+          <MenuItem onClick={() => user.signOut()}>
             <ListItemIcon>
               <ExitToAppIcon fontSize="small" />
             </ListItemIcon>
