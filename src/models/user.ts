@@ -74,28 +74,6 @@ const hndlError = (e: any) => { // special handling due to initial session check
 const load = () => {
   const opts = state.first ? {noAlertStatus: 401} : {};
   state.unsubscribe();
-
-  // state.subscpt = ajax<string>({
-  //   url: `${baseUrl}/users`,
-  //   crossDomain: true,
-  //   withCredentials: true,
-  //   method: 'GET',
-  //   headers: {'Accept': 'application/json'},
-  // })
-  // .pipe(retrier(opts))
-  // .subscribe({
-  //   next: res => state.next(fromGet(JSON.parse(res.response)[0])),
-  //   error: e => {
-  //     const error = hndlError(e);
-  //     if (error) state.error(error);
-  //     else { // init session check done
-  //       const tmp = state;
-  //       state = new GlbState(tmp);
-  //       tmp.cmpl(cmpl);
-  //     }
-  //   }
-  // });
-
   state.subscpt = ajax.getJSON<Get[]>(`${baseUrl}/users`)
     .pipe(retrier(opts))
     .subscribe({

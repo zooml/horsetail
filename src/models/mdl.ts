@@ -46,6 +46,16 @@ export const makeHash = <S, T extends Idable>(
   }
   return m;
 };
+export const hashToArray = <T>(h: Hash<T>, cmp: (v0: T, v1: T) => number) => {
+  const arr = Object.values(h).sort((v0, v1) => 
+    v0 instanceof Subject
+      ? 1
+      : (v1 instanceof Subject
+          ? -1
+          : cmp(v0, v1)));
+  arr.pop();
+  return arr;
+};
 export const hashCmpl = <T>(m: Hash<T>, tCmpl?: (t: T) => void) => {
   if (tCmpl) {
     for (const [k, v] of Object.entries(m)) {

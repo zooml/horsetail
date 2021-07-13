@@ -30,8 +30,10 @@ export default class GlbState<T> {
     this.unsubscribe();
     this.first = false;
     this.mdl = mdl;
-    this.ack$?.complete(); // keep ack$ so load can be called again (and not load)
+    const tmp$ = this.ack$;
+    delete this.ack$;
     console.log(`${this.name}: next`);
+    tmp$?.complete();
     this.mdl$.next(mdl);  
   }
   error(e: Error) { // keep mdl$, report error via ack$, allow retry

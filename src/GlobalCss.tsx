@@ -40,11 +40,18 @@ export const GlobalCss = withStyles({
     '.MuiButton-endIcon': {
       marginLeft: 0
     },
+    '.MuiMenuItem-root': {
+      minWidth: '18em'
+    },
     '.menuItemBlankIcon': {
       minWidth: '30px'
     },
     '.dateRng': {
-      width: '20em'
+      paddingLeft: '.8em',
+      paddingRight: '.8em',
+      display: 'flex',
+      flexWrap: 'nowrap',
+      alignItems: 'center'
     }
   },
 })(() => null);

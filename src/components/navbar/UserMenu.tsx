@@ -17,8 +17,9 @@ const UserMenu = (props: Props) => {
     <div>
       <IconButton 
         aria-controls="user-menu" aria-haspopup="true"
-        onClick={onButtonClick}>
-        <AccountCircleIcon/>
+        onClick={onButtonClick}
+        color="inherit">
+        <AccountCircleIcon />
       </IconButton>
       <Paper {...props}>
         <Menu

@@ -140,31 +140,25 @@ let postAck$: Subject<void> | undefined;
 
 // the returned stream will emit a single next with the org tldrs (when loaded)
 // and is completed when the user signs out (no error reported here)
-export const getTldrs$ = () => tmsState.mdl$;
-
-// call getTldrs$ first to get the stream then here to initiate the load
-// this returns an ack$ stream that reports errors and completion, on
-// an error this should be called again
-// (calling prior to checking the user session will cause the getTldrs$ 
-// stream to complete w/o next)
-export const loadTldrs = (): Subject<void> => {
-  if (tmsState.ack$) return tmsState.ack$;
-  tmsState.ack$ = new Subject<void>();
-  user.get$().subscribe({ // user signed in event
-    next: () =>
-      tmsState.subscpt = ajax.getJSON<TldrGet[]>(`${baseUrl}/orgs`)
-        .pipe(retrier())
-        .subscribe({ // async so subscpt must have been set
-          next: gs => tmsState.next(tldrsFromGets(gs)),
-          error: e => tmsState.error(e)
-        }),
-    complete: () => { // user signed out
-      const tmp = tmsState; // reset state first
-      tmsState = new GlbState(tmp);
-      tmp.cmpl(tldrsCmpl);
-    }
-  });
-  return tmsState.ack$;
+export const getTldrs$ = () => {
+  if (!tmsState.mdl && !tmsState.ack$) {
+    tmsState.ack$ = new Subject<void>();
+    user.get$().subscribe({ // user signed in event
+      next: () =>
+        tmsState.subscpt = ajax.getJSON<TldrGet[]>(`${baseUrl}/orgs`)
+          .pipe(retrier())
+          .subscribe({ // async so subscpt must have been set
+            next: gs => tmsState.next(tldrsFromGets(gs)),
+            error: e => tmsState.error(e)
+          }),
+      complete: () => { // user signed out
+        const tmp = tmsState; // reset state first
+        tmsState = new GlbState(tmp);
+        tmp.cmpl(tldrsCmpl);
+      }
+    });
+  }
+  return tmsState.mdl$;
 };
 
 // returns stream containing current org, or that will contain

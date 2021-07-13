@@ -12,6 +12,10 @@ import { useEffect } from 'react';
 import * as org from '../../models/org';
 import { RESOURCES } from '../../common/limits';
 import OrgDialog from './OrgDialog';
+import { hashToArray } from '../../models/mdl';
+import { Subscription } from 'rxjs';
+
+const cmpName = (v0: org.TldrMdl, v1: org.TldrMdl) => v0.name < v1.name ? -1 : 1;
 
 export type Props = {
   [k: string]: any
@@ -19,30 +23,39 @@ export type Props = {
 
 const AppMenu = (props: Props) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [curOrg, setCurOrg] = useState<org.TldrMdl | undefined>();
-  const [orgs, setOrgs] = useState<org.TldrMdls | undefined>();
-  const [orgAddOpen, setOrgAddOpen] = useState(false);
+  const [selOrg, setSelOrg] = useState<org.TldrMdl | undefined>();
+  const [orgs, setOrgs] = useState<org.TldrMdl[] | undefined>();
+  const [orgAddDlgOpen, setOrgAddDlgOpen] = useState(false);
   useEffect(() => {
-    const subscpt = org.getTldrs$().subscribe({
-      next: mdls => setOrgs(mdls), // TODO ???? note no need to subscribe to changes b/c it's a menu
+    const subscpts: Subscription[] = [];
+    subscpts.push(org.getTldrs$().subscribe({
+      next: mdls => {
+        subscpts.push(mdls.chg$.subscribe({
+          next: () => setOrgs(hashToArray(mdls, cmpName)) // set new array from mdls
+        }));
+        setOrgs(hashToArray(mdls, cmpName));
+      },
       complete: () => setOrgs(undefined)
-    });
-    org.loadTldrs();
-    return () => subscpt.unsubscribe();
+    }));
+    return () => subscpts.forEach(s => s.unsubscribe());
   }, []); // TODO ??? orgs hash will update in the background
   useEffect(() => {
     const subscpt = org.get$().subscribe({
-      next: o => setCurOrg(o),
-      complete: () => setCurOrg(undefined)
+      next: mdl => setSelOrg(mdl),
+      complete: () => setSelOrg(undefined)
     });
     return () => subscpt.unsubscribe();
   });
-  const onMenuClick = (event: React.MouseEvent<HTMLButtonElement>) => setAnchorEl(event.currentTarget);
+  const onOpenClick = (event: React.MouseEvent<HTMLButtonElement>) => setAnchorEl(event.currentTarget);
   const onClose = () => setAnchorEl(null);
-  const onOrgAddClick = () => setOrgAddOpen(true);
-  const onOrgAddClose = () => setOrgAddOpen(false);
+  const onOrgAddClick = () => {
+    onClose();
+    setOrgAddDlgOpen(true);
+  };
+  const onOrgAddClose = () => setOrgAddDlgOpen(false);
   const onOrgClick = (id: string) => {
-    if (id === curOrg?.id) org.clear$();
+    onClose();
+    if (id === selOrg?.id) org.clear$();
     else org.set(id);
   };
   return (
@@ -50,7 +63,7 @@ const AppMenu = (props: Props) => {
       <IconButton 
         color="inherit" 
         aria-controls="app-menu" aria-haspopup="true"
-        onClick={onMenuClick}>
+        onClick={onOpenClick}>
         <MenuIcon/>
       </IconButton>
       <Paper {...props} >
@@ -58,10 +71,10 @@ const AppMenu = (props: Props) => {
           className="appMenu"
           id="app-menu"
           anchorEl={anchorEl}
-          // keepMounted TODO does this cause menu not to be re-created each time????
+          keepMounted
           getContentAnchorEl={null}
-          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-          transformOrigin={{ vertical: "top", horizontal: "center" }}
+          anchorOrigin={{vertical: 'bottom', horizontal: 'center'}}
+          transformOrigin={{vertical: 'top', horizontal: 'center'}}
           open={Boolean(anchorEl)}
           onClose={onClose}>
           <MenuItem 
@@ -73,16 +86,16 @@ const AppMenu = (props: Props) => {
             <Typography style={{flex: 1}} variant="inherit" noWrap>Orgs</Typography>
             <ListItemIcon>
               <IconButton 
-                disabled={!orgs || RESOURCES.orgs.perSA.max <= Object.keys(orgs).length} /* TODO need to subtract non-SA when joining supported */
+                disabled={!orgs || RESOURCES.orgs.perSA.max <= orgs.length} /* TODO need to subtract non-SA when invite supported */
                 onClick={onOrgAddClick}>
                 <AddIcon fontSize="small" />
               </IconButton>
             </ListItemIcon>
           </MenuItem>
-          { orgs && Object.values(orgs).sort((o0, o1) => o0.name < o1.name ? -1 : 1).forEach(o => (
+          {!orgs ? null : orgs.map(o => (
             <MenuItem key={o.id} onClick={() => onOrgClick(o.id)}>
               <div className="menuItemBlankIcon" />
-              { o.id === curOrg?.id ? (
+              { o.id === selOrg?.id ? (
                 <ListItemIcon>
                   <CheckIcon fontSize="small" />
                 </ListItemIcon> ) : (
@@ -90,7 +103,7 @@ const AppMenu = (props: Props) => {
               <Typography variant="inherit" noWrap>{o.name}</Typography>
             </MenuItem>
           ))}
-          <MenuItem key="id1">
+          {/* <MenuItem key="id1">
             <div className="menuItemBlankIcon" />
             <ListItemIcon>
               <CheckIcon fontSize="small" />
@@ -99,11 +112,12 @@ const AppMenu = (props: Props) => {
           </MenuItem>
           <MenuItem onClick={() => console.log('2')}>
             <div className="menuItemBlankIcon"/>
+            <div className="menuItemBlankIcon"/>
             <Typography variant="inherit" noWrap>My org number 2 with a really long name 1234123 4123 412 431 341234123412 1</Typography>
-          </MenuItem>
+          </MenuItem> */}
         </Menu>
       </Paper>
-      <OrgDialog open={orgAddOpen} onClose={onOrgAddClose} />
+      <OrgDialog open={orgAddDlgOpen} onClose={onOrgAddClose} />
     </div>
   );
 };
