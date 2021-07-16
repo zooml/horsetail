@@ -41,7 +41,7 @@ const fmtMsg = (e: AjaxError, isNE: boolean, isSE: boolean): [string, string] =>
 
 export type OvrdAlert = {
   alert: alert.Alert;
-  code?: number; // only for this error code
+  code?: number; // only for this error code (else all)
 }
 
 export type RetryOpts = {

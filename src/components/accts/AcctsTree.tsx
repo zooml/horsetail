@@ -76,7 +76,7 @@ const useTreeItemStyles = makeStyles((theme: Theme) =>
 
 function StyledTreeItem(props: StyledTreeItemProps) {
   const classes = useTreeItemStyles();
-  const { labelText, labelIcon: LabelIcon, labelInfo, color, bgColor, ...other } = props;
+  const {labelText, labelIcon: LabelIcon, labelInfo, color, bgColor, ...other} = props;
 
   const tistyle = {
     '--tree-view-color': color,
@@ -116,13 +116,13 @@ const useStyles = makeStyles(
       height: 264,
       flexGrow: 1,
       maxWidth: 400,
+      marginRight: '.5em'
     },
   }),
 );
 
-export default function GmailTreeView() {
+const AcctsTree = () => {
   const classes = useStyles();
-
   return (
     <TreeView
       className={classes.root}
@@ -171,3 +171,5 @@ export default function GmailTreeView() {
     </TreeView>
   );
 }
+
+export default AcctsTree;

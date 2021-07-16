@@ -114,24 +114,18 @@ const chartFromGets = (gs: Get[]): Chart => {
 };
 const chartCmpl = (c: Chart) => mdl.arrCmpl(c, cmpl);
 
-let state = new GlbState<Chart>('account');
+let state = new GlbState<Chart>('chart');
 
 // returns stream containing current chart, or that will contain
 // chart after call to org.set(id)/load(), and successful get of accounts
 // does not report errors, completes on org clear
-export const get$ = (): ReplaySubject<Chart> => state.mdl$;
-
-// load chart of accounts for current or future org (call org.set())
-// returns an ack stream that will report error or success (complete)
-// can call again on error
-// optional show alert (set retry action) before reporting error
-export const load = (ovrdAlert?: OvrdAlert): Subject<void> => {
-  if (!state.ack$) {
+export const get$ = (): ReplaySubject<Chart> => {
+  if (!state.mdl) {
     state.ack$ = new Subject();
     org.get$().subscribe({
       next: org => {
         state.subscpt = ajax.getJSON<Get[]>(`${baseUrl}/accounts`, {'X-OId': org.id})
-          .pipe(retrier({ovrdAlert}))
+          .pipe(retrier())
           .subscribe({
             next: gs => state.next(chartFromGets(gs)),
             error: e => state.error(e)
@@ -144,7 +138,7 @@ export const load = (ovrdAlert?: OvrdAlert): Subject<void> => {
       }
     });
   }
-  return state.ack$;
+  return state.mdl$;
 }
 
 export const post = (acct: Mdl) => {

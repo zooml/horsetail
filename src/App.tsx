@@ -1,14 +1,16 @@
 // import { Button, Card, CardMedia, Container, Paper } from "@material-ui/core";
+import { createStyles, Fab, makeStyles, Theme, Toolbar, Typography } from "@material-ui/core";
 import CssBaseline from "@material-ui/core/CssBaseline";
 // import { withStyles } from "@material-ui/core/styles";
-import React from "react";
+import React, { useEffect, useState } from "react";
 // import { Subject } from "rxjs";
 import './App.css';
+import AcctsDrawer from "./components/accts/AcctsDrawer";
 import Alerter from "./components/Alerter";
 import NavBar from './components/navbar/NavBar';
 // import UserCtlButton from './components/UserCtlButton';
 import { GlobalCss } from "./GlobalCss";
-// import { accountsLoad } from "./models/account";
+import AddIcon from '@material-ui/icons/Add';
 // import * as alert from './models/alert';
 // import * as user from './models/user';
 // import NestedList from './components/NestedList'
@@ -20,45 +22,79 @@ import { GlobalCss } from "./GlobalCss";
 // import horsetail from '../public/static/images/horsetail-grass.jpg';
 // import PubContent from "./pubsite/PubContent";
 // import UserMenu from "./components/navbar/UserMenu";
+import * as user from './models/user';
+import PubContent from "./pubsite/PubContent";
+
+const drawerWidth = 240;
+const useStyles = makeStyles((theme: Theme) =>
+  createStyles({
+    root: {
+      display: 'flex',
+    },
+    appBar: {
+      [theme.breakpoints.up('sm')]: {
+        width: `calc(100% - ${drawerWidth}px)`,
+        marginLeft: drawerWidth,
+      },
+    },
+    menuButton: {
+      marginRight: theme.spacing(2),
+      [theme.breakpoints.up('sm')]: {
+        display: 'none',
+      },
+    },
+    // necessary for content to be below app bar
+    toolbar: theme.mixins.toolbar,
+    drawerPaper: {
+      width: drawerWidth,
+    },
+    content: {
+      flexGrow: 1,
+      padding: theme.spacing(3),
+    },
+  }),
+);
 
 const App = () => {
+  const classes = useStyles();
+  const [signedIn, setSignedIn] = useState<boolean>(false);
+  useEffect(() => {
+    const subscpt = user.get$().subscribe({
+      next: () => setSignedIn(true),
+      complete: () => setSignedIn(false)
+    });
+    return () => subscpt.unsubscribe();
+  });
   return (
-    <div className="App">
+    <div className="App" style={{display: 'flex'}}>
       <CssBaseline/>
       <GlobalCss />
       <NavBar/>
-      {/* <UserCtlButton/> */}
-      {/* <NestedList /> */}
-      {/* <AccountsTree /> */}
-      {/* <DocumentsTable data={data} columns={columns} /> */}
-      {/* <VList/> */}
-      {/* <DrCr amount={-100.23} asCr={false} /> */}
-      {/* <Button onClick={() => {
-        user.getIsInitSessionValid$()
-          .subscribe({next: v => alert.push({
-            severity: 2,
-            message: `Hello, world! ${v}`,
-            action: {label: 'done', onClick: () => console.log('clicked')}
-          })});
-      }} >ajax</Button> */}
-      {/* <Button onClick={() => {
-        user.get$().subscribe({
-          next: u => {console.log(`got user ${u.email}`)},
-          error: e => {console.log(`got error ${e.message}`)},
-          complete: () => {console.log('not signed in')}
-        }) 
-      }} >init</Button> */}
-      {/* <Card style={{width: '100%', height: '100%'}}>
-        <CardMedia image="/static/images/horsetail-grass.jpg" />
-        <Box>hi</Box>
-      </Card> */}
-      {/* <img alt="Horsetail plants background" src="/static/images/horsetail-grass.jpg"/> */}
-      {/* <Container hidden={false} style={{backgroundImage: 'url(/static/img/horsetail-grass.jpg)', flex: 1, width: '100%', height: '100%'}}>
-        <Box>hi</Box>
-        <Box>bye</Box>
-      </Container> */}
-      {/* <PubContent /> */}
-      <Alerter />
+      {signedIn 
+        ? <div style={{display: 'flex'}}>
+            <AcctsDrawer />
+            <main className={classes.content}>
+              <Toolbar />
+              <Fab color="primary" aria-label="add" size="small" style={{position: "absolute", bottom: '1em', right: '1em'}}> 
+                <AddIcon />
+              </Fab>
+              <Typography paragraph>
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt
+                ut labore et dolore magna aliqua. Rhoncus dolor purus non enim praesent elementum
+                facilisis leo vel. Risus at ultrices mi tempus imperdiet. Semper risus in hendrerit
+                gravida rutrum quisque non tellus. Convallis convallis tellus id interdum velit laoreet id
+                donec ultrices. Odio morbi quis commodo odio aenean sed adipiscing. Amet nisl suscipit
+                adipiscing bibendum est ultricies integer quis. Cursus euismod quis viverra nibh cras.
+                Metus vulputate eu scelerisque felis imperdiet proin fermentum leo. Mauris commodo quis
+                imperdiet massa tincidunt. Cras tincidunt lobortis feugiat vivamus at augue. At augue eget
+                arcu dictum varius duis at consectetur lorem. Velit sed ullamcorper morbi tincidunt. Lorem
+                donec massa sapien faucibus et molestie ac.
+              </Typography>
+            </main>
+            <Alerter />
+          </div>
+        : <PubContent />
+      }
     </div>
   );
 }

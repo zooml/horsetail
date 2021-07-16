@@ -21,6 +21,12 @@ export type Props = {
   [k: string]: any
 };
 
+// TODO const OrgActionMenu = () => {
+//   return (
+
+//   );
+// };
+
 const AppMenu = (props: Props) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selOrg, setSelOrg] = useState<org.TldrMdl | undefined>();
@@ -77,9 +83,7 @@ const AppMenu = (props: Props) => {
           transformOrigin={{vertical: 'top', horizontal: 'center'}}
           open={Boolean(anchorEl)}
           onClose={onClose}>
-          <MenuItem 
-            button={false}
-            onMouseOver={e => e.preventDefault()} onMouseDown={e => e.preventDefault()}>
+          <MenuItem button={false}>
             <ListItemIcon>
               <BusinessIcon fontSize="small" />
             </ListItemIcon>
@@ -103,18 +107,6 @@ const AppMenu = (props: Props) => {
               <Typography variant="inherit" noWrap>{o.name}</Typography>
             </MenuItem>
           ))}
-          {/* <MenuItem key="id1">
-            <div className="menuItemBlankIcon" />
-            <ListItemIcon>
-              <CheckIcon fontSize="small" />
-            </ListItemIcon>
-            <Typography variant="inherit" noWrap>My org number 1</Typography>
-          </MenuItem>
-          <MenuItem onClick={() => console.log('2')}>
-            <div className="menuItemBlankIcon"/>
-            <div className="menuItemBlankIcon"/>
-            <Typography variant="inherit" noWrap>My org number 2 with a really long name 1234123 4123 412 431 341234123412 1</Typography>
-          </MenuItem> */}
         </Menu>
       </Paper>
       <OrgDialog open={orgAddDlgOpen} onClose={onOrgAddClose} />

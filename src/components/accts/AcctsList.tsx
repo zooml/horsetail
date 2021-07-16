@@ -13,8 +13,8 @@ import SendIcon from '@material-ui/icons/Send';
 import ExpandLess from '@material-ui/icons/ExpandLess';
 import ExpandMore from '@material-ui/icons/ExpandMore';
 import StarBorder from '@material-ui/icons/StarBorder';
-import DrCr from './DrCr';
-import { Mdl } from '../models/account';
+import DrCr from '../DrCr';
+import * as account from '../../models/account';
 import Typography from '@material-ui/core/Typography';
 import ButtonBase from '@material-ui/core/ButtonBase';
 
@@ -23,6 +23,13 @@ const useListStyles = makeStyles((theme: Theme) =>
     root: {
       width: '100%',
       backgroundColor: theme.palette.background.paper,
+      '& .MuiListItem-root > .MuiSvgIcon-root': {
+        order: -1
+      },
+      '& .MuiListItem-root': {
+        paddingTop: 0,
+        paddingBottom: 0,
+      },
     }
   }),
 );
@@ -54,10 +61,11 @@ const useItemStyles = makeStyles((theme: Theme) =>
   }),
 );
 
-const AccountChildItems = ({acct, level}: {acct: Mdl, level: number}) => {
+const AcctChildItems = ({acct, level}: {acct: account.Mdl, level: number}) => {
+
 }
 
-const AccountItem = ({acct, level}: {acct: Mdl, level: number}) => {
+const AcctItem = ({acct, level}: {acct: account.Mdl, level: number}) => {
   const isParent = !!acct.subs.length;
   const classes = useItemStyles({level});
   const [open, setOpen] = useState(false);
@@ -68,7 +76,7 @@ const AccountItem = ({acct, level}: {acct: Mdl, level: number}) => {
   useEffect(() => {
     const s$ = acct.chg$.subscribe({next: () => setChanged(!changed)});
     return () => s$.unsubscribe();
-  }, []);
+  });
   return (
     <ListItem selected>
       {isParent && (open ? <ExpandLess onClick={handleClick} /> : <ExpandMore onClick={handleClick} />)}
@@ -80,84 +88,65 @@ const AccountItem = ({acct, level}: {acct: Mdl, level: number}) => {
     </ListItem>
 )};
 
-export default function AccountList() {
-  const classes = useListStyles();
-  const [, setLoaded] = useState(false);
-  useEffect(() => {
-    // const s$ = loadAll().subscribe({next: () => setLoaded(true)});
-    // return () => s$.unsubscribe();
-  }, []);
-  return (
-    <List
-      component="nav"
-      className={classes.root}
-    >
-      {/* {Object.values(accountsStore).map(acct => <AccountItem key={acct.id} acct={acct} level={0} />)} */}
-    </List>
-  );
-}
-
-export  function NestedList() {
+export  function AcctsList() {
   const classes = useListStyles();
   const [open, setOpen] = React.useState(true);
   const handleClick = () => {
     setOpen(!open);
   }; 
-  // useEffect(() => {
-  //   const s$ = loadAll().subscribe({
-  //     next: () => console.log('loaded') // TODO render
-  //   });
-  //   return () => s$.unsubscribe();
-  // }, []);
-
-
-  // TODO move expand icon to left side: https://stackoverflow.com/questions/57459133/how-to-change-expansion-panel-icon-position-to-the-left
-  // order: -1
-
+  useEffect(() => {
+    const subscrpt = account.get$().subscribe({
+      next: chart => console.log('accounts loaded'),
+      complete: () => {} // TODO clear
+    });
+    return () => subscrpt.unsubscribe();
+  }, []);
   return (
-    <List
-      component="nav"
-      aria-labelledby="nested-list-subheader"
-      subheader={
-        <ListSubheader component="div" id="nested-list-subheader">
-          Nested List Items
-        </ListSubheader>
-      }
-      className={classes.root}
-    >
+    <List component="nav" className={classes.root}>
       <ListItem button>
-        <Checkbox />
+        <ListItemText primary="Accounts" />
+      </ListItem>
+      <ListItem button selected={true}>
+        <Checkbox size="small"/>
         <ListItemIcon>
           <SendIcon />
         </ListItemIcon>
         <ListItemText primary="Sent mail" />
       </ListItem>
       <ListItem button>
-       <Checkbox />
+       <Checkbox size="small" />
         <ListItemIcon>
           <DraftsIcon />
         </ListItemIcon>
         <ListItemText primary="Drafts" />
       </ListItem>
       <ListItem button onClick={handleClick}>
-        <Checkbox />
-        <ListItemIcon>
+        <Checkbox size="small" onClick={e => {
+          e.stopPropagation();
+        }}/>
+        {/* <ListItemIcon>
           <InboxIcon />
-        </ListItemIcon>
-        <ListItemText primary="Inbox" />
+        </ListItemIcon> */}
+        <ListItemText primary="Inbox" onClick={e => {
+          e.stopPropagation();
+        }}/>
         {open ? <ExpandLess /> : <ExpandMore />}
       </ListItem>
       <Collapse in={open} timeout="auto" unmountOnExit>
         <List component="div" disablePadding>
           <ListItem button>
-            <Checkbox />
-            <ListItemIcon>
+            <div style={{width: '24px'}}/>
+            <div style={{width: '1em'}}/>
+            <Checkbox size="small" onChange={e => {
+              console.log('click');
+            }}/>
+            {/* <ListItemIcon>
               <StarBorder />
-            </ListItemIcon>
+            </ListItemIcon> */}
             <ListItemText primary="Starred" />
           </ListItem>
           <ListItem button>
-            <Checkbox />
+            <Checkbox size="small" />
             <ListItemIcon>
               <StarBorder />
             </ListItemIcon>
@@ -167,7 +156,7 @@ export  function NestedList() {
           <Collapse in={open} timeout="auto" unmountOnExit>
             <List component="div" disablePadding>
               <ListItem button>
-                <Checkbox />
+                <Checkbox size="small" />
                 <ListItemIcon>
                   <StarBorder />
                 </ListItemIcon>

@@ -32,7 +32,7 @@ export default class GlbState<T> {
     this.mdl = mdl;
     const tmp$ = this.ack$;
     delete this.ack$;
-    console.log(`${this.name}: next`);
+    console.log(`${this.name} state: next`);
     tmp$?.complete();
     this.mdl$.next(mdl);  
   }
@@ -41,7 +41,7 @@ export default class GlbState<T> {
     this.first = false;
     const tmp$ = this.ack$;
     delete this.ack$;
-    console.log(`${this.name}: error: ${e.message}`);
+    console.log(`${this.name} state: error: ${e.message}`);
     tmp$?.error(e);  
   }
   cmpl(cmplMdl: (m: T) => void) { // assumes this state already replaced
@@ -49,11 +49,11 @@ export default class GlbState<T> {
     this.first = false;
     if (this.ack$) {
       const msg = 'user signed out while waiting for load, or invalid session';
-      console.log(`${this.name}: ${msg}`);
+      console.log(`${this.name} state: ${msg}`);
       this.ack$?.error(new Error(msg));
     }
     if (this.mdl) cmplMdl(this.mdl);
-    console.log(`${this.name}: complete`);
+    console.log(`${this.name} state: complete`);
     this.mdl$.complete();
   }
 };
