@@ -4,12 +4,11 @@ import { baseUrl } from '../utils/config';
 import * as mdl from './mdl';
 import * as descs from './descs';
 import * as actts from './actts';
-import retrier, { OvrdAlert } from './retrier';
+import retrier from './retrier';
 import * as org from './org';
-import { CATEGORIES, Category, CAT_IDS, Get, CloseGet } from '../api/accounts';
-import { toDate } from '../utils/clndate';
-import GlbState from './glbstate';
-import { Alert } from './alert';
+import { CATEGORIES, Category, CAT_IDS, Get, CloseGet, Post } from '../api/accounts';
+import { fromDate, toDate, today } from '../utils/clndate';
+import GlbState, { checkPostState } from './glbstate';
 
 export type CloseMdl = CloseGet;
 const fromCloseGet = (g: CloseGet): CloseMdl => g;
@@ -34,6 +33,15 @@ export type Mdl = mdl.Rsc<Chg> & {
   tmpCatId?: number; // tmp until inherit parent
   tmpSumId?: string; // tmp until inherit parent
 };
+export type MdlPost = {
+  num: number;
+  name: string;
+  begAt?: Date;
+  desc?: descs.Mdl;
+  sum?: Mdl; // missing if general acct
+  cat?: Category;
+  isCr?: boolean;
+};
 const fromGet = (g: Get): Mdl => ({
   ...mdl.fromGet(g),
   oId: g.oId,
@@ -50,6 +58,28 @@ const fromGet = (g: Get): Mdl => ({
   tmpCatId: g.catId,
   tmpSumId: g.sumId,
 });
+const toPost = (mp: MdlPost): Post => {
+  const p: Post = {
+    num: mp.num,
+    name: mp.name,
+    begAt: fromDate(mp.begAt ? mp.begAt : today()),
+  };
+  if (mp.desc) p.desc = descs.toPost(mp.desc);
+  if (mp.sum) {
+    if (mp.cat) throw new Error('accounts: post cannot have sum and cat');
+    p.sumId = mp.sum.id;
+  }
+  if (mp.cat) p.catId = mp.cat.id;
+  if (mp.isCr !== undefined) {
+    if (mp.cat) {
+      if (mp.cat.isCr !== mp.isCr) throw new Error('accounts: post has invalid isCr');
+      mp.isCr = undefined;
+    }
+    if (mp.sum && mp.sum.isCr === mp.isCr) mp.isCr = undefined;
+    if (mp.isCr !== undefined) p.isCr = mp.isCr;
+  }
+  return p;
+};
 const cmpl = (m: Mdl) => {
   mdl.arrCmpl(m.subs, cmpl);
   mdl.arrCmpl(m.clos);
@@ -115,6 +145,7 @@ const chartFromGets = (gs: Get[]): Chart => {
 const chartCmpl = (c: Chart) => mdl.arrCmpl(c, cmpl);
 
 let state = new GlbState<Chart>('chart');
+let postAck$: Subject<void> | undefined;
 
 // returns stream containing current chart, or that will contain
 // chart after call to org.set(id)/load(), and successful get of accounts
@@ -141,9 +172,28 @@ export const get$ = (): ReplaySubject<Chart> => {
   return state.mdl$;
 }
 
-export const post = (acct: Mdl) => {
+export const post = (mp: MdlPost) => {
+  checkPostState('account', state, postAck$);
+  postAck$ = new Subject();
+  const subscpt = ajax.post<Get>(`${baseUrl}/accounts`, toPost(mp))
+    .pipe(retrier())
+    .subscribe({
+      next: rsp => {
+        subscpt.unsubscribe(); // this is async so subscpt always set
+        const tmp$ = postAck$;
+        postAck$ = undefined;
 
+        const g = rsp.response;
 
+        tmp$?.complete();
+      },
+      error: e => {
+        const tmp$ = postAck$;
+        postAck$ = undefined;
+        tmp$?.error(e);
+      }
+    });
+  return postAck$;
 }
 
 export const patch = (acct: Mdl, patch: Chg) => {

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Button, IconButton, Menu, MenuItem, Typography } from "@material-ui/core";
-import { PERIOD_IDS, PERIOD_LABELS } from "../../models/daterng";
+import { PERIOD_IDS, PERIOD_LABELS } from "../../modelviews/daterange";
 import ArrowDropDownIcon from '@material-ui/icons/ArrowDropDown';
 import ChevronLeftIcon from '@material-ui/icons/ChevronLeft';
 import ChevronRightIcon from '@material-ui/icons/ChevronRight';
@@ -57,10 +57,10 @@ const DatePeriod = () => {
 //   </div>
 // );
 
-const DateRng = () => {
+const DateRange = () => {
 
   return (
-    <div className="dateRng" >
+    <div className="dateRange" >
       <Typography component="span">2021-06-01</Typography>
       <DatePeriod />
       <IconButton color="inherit" style={{padding: 0}}><ChevronLeftIcon/></IconButton>
@@ -69,4 +69,4 @@ const DateRng = () => {
   );
 };
 
-export default DateRng;
+export default DateRange;

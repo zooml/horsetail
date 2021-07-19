@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import AppBar from '@material-ui/core/AppBar';
 import Toolbar from '@material-ui/core/Toolbar';
 import AppMenu from './AppMenu';
-import DateRng from './DateRng';
+import DateRange from './DateRange';
 import PL from './PL';
 import * as user from '../../models/user';
 import { createStyles, makeStyles, Theme, Typography } from '@material-ui/core';
@@ -41,7 +41,7 @@ const NavBar = () => {
         : (signedIn === true
           ? <Toolbar>
               <AppMenu />
-              <DateRng />
+              <DateRange />
               <PL style={{flexGrow: 1}}/>
               <UserMenu />
             </Toolbar>

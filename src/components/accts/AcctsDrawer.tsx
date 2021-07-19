@@ -34,14 +34,6 @@ const AcctsDrawer = () => {
   // https://material-ui.com/components/drawers/#swipeable
   const drawer = (
     <div className={classes.drawerContainer}>
-      <List>
-        <ListItem>
-          <ListItemIcon>
-            <BusinessIcon fontSize="small" />
-          </ListItemIcon>
-        </ListItem>
-      </List>
-      <Divider />
       <AcctsList />
     </div>
   );

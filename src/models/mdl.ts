@@ -68,12 +68,18 @@ export const hashCmpl = <T>(m: Hash<T>, tCmpl?: (t: T) => void) => {
 export type ArrChg<T> = {
   add?: [number, T];
   rem?: [number, T];
+  reord?: boolean;
 };
 export type Arr<T> = Array<T> & Chgable<ArrChg<T>>;
 export const makeArr = <S, T>(items: S[], f: (s: S) => T): Arr<T> => {
   const arr = items.map(f);
   (arr as Arr<T>).chg$ = new Subject<ArrChg<T>>();
   return arr as Arr<T>;
+};
+export const copyArr = <T>(arr: Arr<T>): Arr<T> => {
+  const a = [...arr] as Arr<T>;
+  a.chg$ = arr.chg$;
+  return a;
 };
 export const arrCmpl = <T>(m: Arr<T>, tCmpl?: (t: T) => void) => {
   if (tCmpl) m.forEach(tCmpl);

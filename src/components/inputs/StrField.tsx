@@ -17,7 +17,7 @@ const StrField = ({formCtl, limit, label, noHint, fieldProps}: Props) => {
   useEffect(() => {
     formCtl.addField(limit.name, !limit.min);
     return () => formCtl.removeField(limit.name);
-  }, [formCtl, limit.name, limit.min]);
+  }, [formCtl, limit]);
   const onChange = (event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>) => {
     const v = event.target.value;
     const isValid = validStr(limit, false, v);

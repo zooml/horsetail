@@ -6,6 +6,11 @@ export const ackError = (msg: string): Subject<void> => {
   return e$;
 }
 
+export const checkPostState = <T>(name: string, allState: GlbState<T>, postAck$: Subject<void> | undefined) => {
+  if (allState.ack$) return ackError(`${name}: invalid state, must get all first`);
+  if (postAck$) return ackError(`${name}: invalid state, previous post still in progress`);
+};
+
 export default class GlbState<T> {
   readonly name: string;
   readonly mdl$ = new ReplaySubject<T>();

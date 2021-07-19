@@ -1,6 +1,6 @@
 import { ReplaySubject, Subject } from "rxjs";
-import * as org from './org';
-import * as base from './mdl';
+import * as org from '../models/org';
+import * as base from '../models/mdl';
 
 export const PERIOD_IDS = Object.freeze({
   DAY: 0,
@@ -118,7 +118,7 @@ export class MdlCls {
     this.postChg(this.end, this.period.inc(this.beg));
   }
   prev() {
-    if (!this.hasPrev) {console.log('daterng: date range has no prev'); return;}
+    if (!this.hasPrev) {console.log('daterange: date range has no prev'); return;}
     this.postChg(this.period.dec(this.end), this.beg);
   }
   setLBnd(d: Date) {
@@ -160,7 +160,7 @@ export class MdlCls {
   }
   setBeg(d: Date) {
     if (this.beg.getTime() === d.getTime()) return;
-    if (!this.isPeriodBeg(d)) {console.log('daterng: setBeg call invalid, not period beg'); return;}
+    if (!this.isPeriodBeg(d)) {console.log('daterange: setBeg call invalid, not period beg'); return;}
     this.postChg(d, this.period.inc(d));
   }
   isPeriodBeg(d: Date) {
@@ -207,28 +207,28 @@ export const get$ = (): ReplaySubject<Mdl> => {
 }
 
 export const next = () => {
-  if (!mdl) {console.log('daterng: next call invalid, no mdl'); return;}
+  if (!mdl) {console.log('daterange: next call invalid, no mdl'); return;}
   mdl.next();
 };
 
 export const prev = () => {
-  if (!mdl) {console.log('daterng: prev call invalid, no mdl'); return;}
+  if (!mdl) {console.log('daterange: prev call invalid, no mdl'); return;}
   mdl.prev();
 };
 
 export const setPeriodByLabel = (label: string) => {
-  if (!mdl) {console.log('daterng: setPeriod call invalid, no mdl'); return;}
+  if (!mdl) {console.log('daterange: setPeriod call invalid, no mdl'); return;}
   const p = Object.values(PERIODS).find(i => i.label === label);
-  if (!p) {console.log('daterng: setPeriod call invalid, label not found'); return;}
+  if (!p) {console.log('daterange: setPeriod call invalid, label not found'); return;}
   mdl.setPeriod(p);
 };
 
 export const setBeg = (d: Date) => {
-  if (!mdl) {console.log('daterng: setBeg call invalid, no mdl'); return;}
+  if (!mdl) {console.log('daterange: setBeg call invalid, no mdl'); return;}
   mdl.setBeg(d);
 }
 
 export const isPeriodBeg = (d: Date) => {
-  if (!mdl) {console.log('daterng: isPeriodBeg call invalid, no mdl'); return;}
+  if (!mdl) {console.log('daterange: isPeriodBeg call invalid, no mdl'); return;}
   return mdl.isPeriodBeg(d);
 }

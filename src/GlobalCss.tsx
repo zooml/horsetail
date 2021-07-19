@@ -40,10 +40,6 @@ export const GlobalCss = withStyles({
     '.MuiListItemIcon-root': {  // for menus
       minWidth: '30px'
     },
-    '.MuiListItem-gutters': {
-      paddingLeft: '.5em',
-      paddingRight: '.5em',
-    },
     '.MuiButton-endIcon': {
       marginLeft: 0
     },
@@ -53,7 +49,7 @@ export const GlobalCss = withStyles({
     '.menuItemBlankIcon': {
       minWidth: '30px'
     },
-    '.dateRng': {
+    '.dateRange': {
       paddingLeft: '.8em',
       paddingRight: '.8em',
       display: 'flex',

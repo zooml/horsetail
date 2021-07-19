@@ -8,7 +8,8 @@ import * as descs from './descs';
 import * as actts from './actts';
 import { CloseGet, FundGet, Get, Post, RoleGet, TldrGet, UserGet } from '../api/orgs';
 import { fromDate, toDate } from '../utils/clndate';
-import GlbState, { ackError } from './glbstate';
+import GlbState, { ackError, checkPostState } from './glbstate';
+import { clear } from '../modelviews/selacct';
 
 export type Role = {
   id: number;
@@ -110,7 +111,7 @@ export type MdlPost = {
   name: string;
   begAt: Date;
   desc?: descs.MdlPost;
-}
+};
 const fromGet = (g: Get): Mdl => ({
   ...tldrFromGet(g),
   funds: mdl.makeArr(g.funds, fromFundGet),
@@ -206,19 +207,12 @@ export const set = (id: string): Subject<void> => {
   return mState.ack$;
 };
 
-const addToTldrMdls = (g: TldrGet) => {
-  if (!tmsState.mdl) throw new Error('org: post completed and tldr orgs missing');
-  const m = tldrFromGet(g);
-  mdl.addToMdl(tmsState.mdl, m, m.id);
-}
-
 // create an org, on success this will add to the tldrs orgs and if there
 // is no current org it will make it the current org (i.e. push into the stream)
 // returns an ack$ that will report error or success (complete)
 export const post = (mp: MdlPost): Subject<void> => {
+  checkPostState('org', tmsState, postAck$);
   if (mState.ack$) return ackError('org: invalid state, another operation in progress');
-  if (postAck$) return ackError('org: invalid state, previous post still in progress');
-  if (!tmsState.mdl) return ackError('org: invalid state, must get tldr orgs first');
   postAck$ = new Subject();
   const subscpt = ajax.post<Get>(`${baseUrl}/orgs`, toPost(mp))
     .pipe(retrier())
@@ -226,15 +220,14 @@ export const post = (mp: MdlPost): Subject<void> => {
       next: rsp => {
         subscpt.unsubscribe(); // this is async so subscpt always set
         const g = rsp.response;
-        addToTldrMdls(g);
         const tmp$ = postAck$;
         postAck$ = undefined;
-        if (!mState.mdl) { // since no current org, do set() action
-          mState.ack$ = tmp$;
-          mState.next(fromGet(g));
-        } else {
-          tmp$?.complete();
-        }
+        // make newly created org the set() org
+        clear();
+        const tm = tldrFromGet(g);
+        mdl.addToMdl(tmsState.mdl!, tm, tm.id); // tmsState checked in checkPostState      
+        mState.ack$ = tmp$;
+        mState.next(fromGet(g));
       },
       error: e => {
         const tmp$ = postAck$;
