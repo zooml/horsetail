@@ -11,9 +11,9 @@ export const CAT_IDS = Object.freeze({
 });
 
 export type Category = {
-  id: number;
-  tag: string;
-  isCr: boolean;
+  readonly id: number;
+  readonly tag: string;
+  readonly isCr: boolean;
 };
 
 export const CATEGORIES: {[key: number]: Category} = Object.freeze({

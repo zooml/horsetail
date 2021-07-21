@@ -1,4 +1,4 @@
-import { Dialog } from "@material-ui/core";
+import { Dialog, DialogTitle } from "@material-ui/core";
 import { FormEvent, useState } from "react";
 import { Subject } from "rxjs";
 import FormCtl from "../dialog/formctl";
@@ -10,9 +10,10 @@ export type Props = {
   formCtl: FormCtl,
   onSubmit: () => Subject<void>;
   children: React.ReactNode;
+  title?: string;
 };
 
-const Dlg = ({open, onClose, formCtl, onSubmit, children}: Props) => {
+const Dlg = ({open, onClose, formCtl, onSubmit, children, title}: Props) => {
   const [inProg, setInProg] = useState(false);
   const onFormSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); 
@@ -25,6 +26,7 @@ const Dlg = ({open, onClose, formCtl, onSubmit, children}: Props) => {
   // TODO focus on 1st field
   return (
     <Dialog onClose={onClose} open={open}>
+      {title && <DialogTitle id={`${title.toLocaleLowerCase().replace(/\s/g, '-')}-dialog`}>{title}</DialogTitle>}
       <form noValidate onSubmit={onFormSubmit}>
         { children }
         <FormActions formCtl={formCtl} onCancel={onClose} disabled={inProg} />

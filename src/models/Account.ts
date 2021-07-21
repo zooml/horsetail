@@ -87,7 +87,7 @@ const cmpl = (m: Mdl) => {
   mdl.cmpl(m);
 };
 
-const addToArray = (arr: mdl.Arr<Mdl>, acct: Mdl, init?: boolean) => {
+const addToArray = (acct: Mdl, arr: mdl.Arr<Mdl>, init?: boolean) => {
   // scan O(n**2) OK as there will not be many children
   for(let i = 0; i < arr.length; ++i) {
     const a = arr[i];
@@ -102,7 +102,7 @@ const addToArray = (arr: mdl.Arr<Mdl>, acct: Mdl, init?: boolean) => {
   else mdl.addToMdl(arr, acct, -1);
 };
 
-const inheritSum = (all: {[k: string]: Mdl}, gens: {[k: string]: Mdl}, acct: Mdl) => {
+const initAcct = (acct: Mdl, sum?: Mdl) => {
   if (acct.tmpCatId) { // init general account
     if (acct.tmpSumId) throw new Error(`account ${acct.id}: category on non-general account`);
     const category = CATEGORIES[acct.tmpCatId];
@@ -110,22 +110,39 @@ const inheritSum = (all: {[k: string]: Mdl}, gens: {[k: string]: Mdl}, acct: Mdl
     delete acct.tmpCatId;
     acct.cat = category;
     acct.isCr = category.isCr;
-    if (gens[category.id]) throw new Error(`account ${acct.id}: general account already exists: ${category.tag}`);
-    gens[category.id] = acct;
+  } else if (sum) { // should always be sum if not cat id
+    if (acct.tmpSumId !== sum.id) throw new Error(`account ${acct.id}: sum id mismatch`);
+    delete acct.tmpSumId;
+    acct.sum = sum;
+    acct.cat = sum.cat; // inherit
+    const svcIsCr = acct.svcIsCr;
+    if (svcIsCr !== undefined) {
+      acct.isCr = svcIsCr;
+    } else { // inherit
+      acct.isCr = sum.isCr;
+    }
+  }
+};
+
+const initAcctFromAll = (all: {[k: string]: Mdl}, gens: {[k: string]: Mdl}, acct: Mdl) => {
+  if (acct.tmpCatId) { // init general account
+    initAcct(acct);
+    if (acct.cat.id in gens) throw new Error(`account ${acct.id}: general account already exists: ${CATEGORIES[acct.cat.id].tag}`);
+    gens[acct.cat.id] = acct;
   } else if (acct.tmpSumId) { // init non-general account
     const sum = all[acct.tmpSumId];
     if (!sum) throw new Error(`account ${acct.id}: invalid parent id: ${acct.tmpSumId}`);
-    delete acct.tmpSumId;
-    inheritSum(all, gens, sum); // recurse to ancestors
-    acct.sum = sum;
-    acct.cat = sum.cat;
-    if ('svcIsCr' in acct) {
-      acct.isCr = acct.svcIsCr || false; // false needed for ts
-    } else {
-      acct.isCr = sum.isCr;
+    if (sum.tmpCatId || sum.tmpSumId) { // sum not init, recurse to ancestors
+      initAcctFromAll(all, gens, sum);
     }
-    addToArray(sum.subs, acct, true);
+    initAcct(acct, sum);
+    addToArray(acct, sum.subs, true);
   }
+};
+
+const addAcct = (acct: Mdl, sum?: Mdl) => {
+  initAcct(acct, sum);
+  addToArray(acct, sum ? sum.subs : state.mdl!);
 };
 
 // chart of accounts, these are the general accounts with recursive sub accounts
@@ -136,26 +153,32 @@ const chartFromGets = (gs: Get[]): Chart => {
   const gens: {[k: string]: Mdl} = {};
   gs.forEach(acct => {all[acct.id] = fromGet(acct);});
   for (const acct of Object.values(all)) {
-    inheritSum(all, gens, acct);
+    initAcctFromAll(all, gens, acct);
   }
-  const chart: Chart = mdl.makeArr([], fromGet);
-  chart.splice(0, 0, ...Object.values(gens));
+  const chart: Chart = mdl.makeArr(Object.values(gens), m => m);
   return chart.sort((o0: Mdl, o1: Mdl) => o0.num - o1.num);
 };
 const chartCmpl = (c: Chart) => mdl.arrCmpl(c, cmpl);
 
+let curOrg: org.Mdl | undefined;
 let state = new GlbState<Chart>('chart');
 let postAck$: Subject<void> | undefined;
+
+const hdrs = () => {
+  if (!curOrg) throw new Error('account: missing current org');
+  return {'X-OId': curOrg.id};
+}
 
 // returns stream containing current chart, or that will contain
 // chart after call to org.set(id)/load(), and successful get of accounts
 // does not report errors, completes on org clear
 export const get$ = (): ReplaySubject<Chart> => {
-  if (!state.mdl) {
+  if (!state.mdl && !state.ack$) {
     state.ack$ = new Subject();
     org.get$().subscribe({
       next: org => {
-        state.subscpt = ajax.getJSON<Get[]>(`${baseUrl}/accounts`, {'X-OId': org.id})
+        curOrg = org;
+        state.subscpt = ajax.getJSON<Get[]>(`${baseUrl}/accounts`, hdrs())
           .pipe(retrier())
           .subscribe({
             next: gs => state.next(chartFromGets(gs)),
@@ -163,6 +186,7 @@ export const get$ = (): ReplaySubject<Chart> => {
           })
       },
       complete: () => { // org cleared, user sign out, etc.
+        curOrg = undefined;
         const tmp = state;
         state = new GlbState(tmp);
         tmp.cmpl(chartCmpl);
@@ -175,17 +199,15 @@ export const get$ = (): ReplaySubject<Chart> => {
 export const post = (mp: MdlPost) => {
   checkPostState('account', state, postAck$);
   postAck$ = new Subject();
-  const subscpt = ajax.post<Get>(`${baseUrl}/accounts`, toPost(mp))
+  const subscpt = ajax.post<Get>(`${baseUrl}/accounts`, toPost(mp), hdrs())
     .pipe(retrier())
     .subscribe({
       next: rsp => {
         subscpt.unsubscribe(); // this is async so subscpt always set
         const tmp$ = postAck$;
         postAck$ = undefined;
-
-        const g = rsp.response;
-
         tmp$?.complete();
+        addAcct(fromGet(rsp.response), mp.sum);
       },
       error: e => {
         const tmp$ = postAck$;

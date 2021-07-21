@@ -1,7 +1,7 @@
 import { TextField } from "@material-ui/core";
 import { ChangeEvent, useEffect, useState } from "react";
 import { NumLimit } from "../../common/limits";
-import { toCap, validNum } from "../../common/validators";
+import { toCap, toInt, validNum } from "../../common/validators";
 import FormCtl from "../dialog/formctl";
 
 type Props = {
@@ -19,15 +19,17 @@ const NumField = ({formCtl, limit, label, fieldProps}: Props) => {
     formCtl.addField(limit.name, !limit.min);
     return () => formCtl.removeField(limit.name);
   }, [formCtl, limit]);
-  const onChange = (event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>) => {
-    const v = event.target.value;
-    const isValid = validNum(limit, false, v);
+  const onChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const v = e.target.value;
+    // const isValid = validNum(limit, false, v);
+    const isValid = /^[0-9]+$/.test(v);
     if (v) { // non-empty: display error
+      e.preventDefault();
       setIsError(!isValid);
     } else { // empty: don't display if error (it's obvious to user)
       setIsError(false);
     }
-    formCtl.onValueChg(limit.name, isValid ? v : undefined);
+    formCtl.onValueChg(limit.name, isValid ? toInt(v) : undefined);
   };
   const lbl = label ?? toCap(limit.name);
   let hint = limit.hint ?? '';

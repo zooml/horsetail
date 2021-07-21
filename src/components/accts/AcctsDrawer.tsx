@@ -1,7 +1,5 @@
-import { createStyles, Divider, Drawer, Hidden, ListItem, ListItemIcon, makeStyles, Theme, Toolbar, useTheme } from "@material-ui/core";
+import { createStyles, Drawer, Hidden, makeStyles, Theme, Toolbar, useTheme } from "@material-ui/core";
 import { useState } from "react";
-import BusinessIcon from '@material-ui/icons/Business';
-import { List } from "@material-ui/core";
 import { AcctsList } from "./AcctsList";
 
 const drawerWidth = 240;

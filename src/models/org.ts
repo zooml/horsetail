@@ -136,7 +136,7 @@ const tldrsFromGets = (gs: TldrGet[]) => mdl.makeHash(gs, tldrFromGet);
 const tldrsCmpl = (m: TldrMdls) => mdl.hashCmpl(m, tldrCmpl);
 
 let mState = new GlbState<Mdl>('org');
-let tmsState = new GlbState<TldrMdls>('tldr orgs');
+let tmsState = new GlbState<TldrMdls>('orgtldrs');
 let postAck$: Subject<void> | undefined;
 
 // the returned stream will emit a single next with the org tldrs (when loaded)

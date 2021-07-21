@@ -1,6 +1,7 @@
-import { ACCTCATS } from "./acctcat";
+import { CATEGORIES } from "../api/accounts";
+import { toCap } from "./validators";
 
-export type LimitKind = 'string' | 'number' | 'boolean' | 'date' | 'objectid' | 'object' | 'array';
+export type LimitKind = 'string' | 'number' | 'boolean' | 'date' | 'objectid' | 'object' | 'array' | 'choice';
 
 export type Limit = {
   kind: LimitKind;
@@ -40,6 +41,15 @@ export type ArrLimit = LimitMinMax & {
   req: boolean;
 };
 
+export type Choices = {
+  [k: number]: string; // values to labels
+};
+
+export type ChoiceLimit = Limit & {
+  req: boolean;
+  choices: Choices;
+};
+
 // allow sp, ', -
 const NAME_REGEXP = /^[^!"#$%&()*+,./:;<=>?@[\\\]^_`{|}~]+$/;
 const NAME_HINT = 'no special characters';
@@ -67,7 +77,6 @@ export const FIELDS = {
   } as StrLimit,
 
   num: {kind: 'number', name: 'num', min: 100, max: 999999, req: true} as NumLimit,
-  catId: {kind: 'number', name: 'catId', min: 1, max: Object.keys(ACCTCATS).length, req: false} as NumLimit,
   st: {kind: 'number', name: 'st', min: 1, max: 99999, req: true} as NumLimit,
 
   isCr: {kind: 'boolean', name: 'isCr', req: false} as BoolLimit,
@@ -87,6 +96,10 @@ export const FIELDS = {
   users: {kind: 'array', name: 'users', min: 1, max: 3, req: true} as ArrLimit, // users/org
   funds: {kind: 'array', name: 'funds', min: 1, max: 100, req: true} as ArrLimit, // defined funds (act & sus)/org
   amts: {kind: 'array', name: 'amts', min: 2, max: 20, req: true} as ArrLimit, // amounts/txndoc
+
+  catId: {kind: 'choice', name: 'catId', req: false, choices: Object.values(CATEGORIES)
+    .reduce((p, c) => {p[c.id] = toCap(c.tag); return p;}, {} as Choices),
+    hint: 'General summary accounts are classified.'} as ChoiceLimit,
 };
 
 export const RESOURCES = {

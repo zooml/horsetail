@@ -75,7 +75,7 @@ const App = () => {
             <AcctsDrawer />
             <main className={classes.content}>
               <Toolbar />
-              <Fab color="primary" aria-label="add" size="small" style={{position: "absolute", bottom: '1em', right: '1em'}}> 
+              <Fab color="primary" aria-label="add document" size="small" style={{position: "absolute", bottom: '1em', right: '1em'}}> 
                 <AddIcon />
               </Fab>
               <Typography paragraph>

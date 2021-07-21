@@ -1,4 +1,4 @@
-import React, { Fragment, memo, useEffect, useState } from 'react';
+import { Fragment, memo, useEffect, useState, MouseEvent } from 'react';
 import { makeStyles, Theme, createStyles } from '@material-ui/core/styles';
 import List from '@material-ui/core/List';
 import ListItem from '@material-ui/core/ListItem';
@@ -6,13 +6,15 @@ import ListItemIcon from '@material-ui/core/ListItemIcon';
 import ListItemText from '@material-ui/core/ListItemText';
 import Collapse from '@material-ui/core/Collapse';
 import ListAltIcon from '@material-ui/icons/ListAlt';
-import AddIcon from '@material-ui/icons/Add';
 import ExpandLess from '@material-ui/icons/ExpandLess';
 import ExpandMore from '@material-ui/icons/ExpandMore';
 import DrCr from '../DrCr';
 import * as account from '../../models/account';
-import { Fab, Tooltip } from '@material-ui/core';
+import { Tooltip } from '@material-ui/core';
 import { Arr, copyArr } from '../../models/mdl';
+import * as selacct from '../../modelviews/selacct'
+import AcctAddButton from './AcctAddButton';
+import { useCallback } from 'react';
 
 const useListStyles = makeStyles((theme: Theme) =>
   createStyles({
@@ -58,13 +60,12 @@ const useItemStyles = makeStyles((theme: Theme) =>
   }),
 );
 
-type AcctSubItemsProps = {
-  open: boolean;
+type AcctItemsProps = {
   accts: Arr<account.Mdl>;
   level: number;
 };
 
-const AcctSubItems = memo(({open, accts, level}: AcctSubItemsProps) => {
+const AcctItems = memo(({accts, level}: AcctItemsProps) => {
   const [subs, setSubs] = useState(accts);
   useEffect(() => {
     const subscrpt = accts.chg$.subscribe({
@@ -74,11 +75,9 @@ const AcctSubItems = memo(({open, accts, level}: AcctSubItemsProps) => {
     return () => subscrpt.unsubscribe();
   }, [accts]);
   return (
-    <Collapse in={open} timeout="auto">
-      <List component="div" disablePadding>
-        {subs.map(a => <AcctItem key={a.id} acct={a} level={level} />)}
-      </List>
-    </Collapse>
+    <Fragment>
+      {subs.map(a => <AcctItem key={a.id} acct={a} level={level} />)}
+    </Fragment>
   );
 });
 
@@ -89,11 +88,11 @@ type AcctItemProps = {
 
 const AcctItem = memo(({acct, level}: AcctItemProps) => {
   const classes = useItemStyles({level});
-  const [open, setOpen] = useState(false);
   const [num, setNum] = useState(acct.num);
   const [name, setName] = useState(acct.name);
   const [hasSubs, setHasSubs] = useState(0 < acct.subs.length);
-  const tglOpen = () => setOpen(!open);
+  const [open, setOpen] = useState(false);
+  const [sel, setSel] = useState(false);
   useEffect(() => {
     const subscrpt = acct.chg$.subscribe({
       next: chg => {
@@ -109,9 +108,20 @@ const AcctItem = memo(({acct, level}: AcctItemProps) => {
     });
     return () => subscrpt.unsubscribe();
   }, [acct.subs]);
+  const tglOpen = useCallback(() => setOpen(!open), [open]);
+  const onClick = useCallback(() => {
+    if (selacct.set(acct)) { // new selection
+      setSel(true);
+      selacct.get$().subscribe({
+        complete: () => setSel(false)
+      });
+    }
+  }, [acct]);
+  // TODO double-click == edit
   return (
     <Fragment>
-      <ListItem key={acct.id} button className={classes.root}>
+      <ListItem key={acct.id} button className={classes.root}
+         onClick={onClick} selected={sel}>
         {hasSubs
           ? (open ? <ExpandLess onClick={tglOpen} /> : <ExpandMore onClick={tglOpen} />)
           : <ExpandLess style={{visibility: "hidden"}} />}
@@ -120,18 +130,15 @@ const AcctItem = memo(({acct, level}: AcctItemProps) => {
         </Tooltip>
         <DrCr amt={123.45} asCr={acct.isCr} />
       </ListItem>
-      {hasSubs && <AcctSubItems key={`s${acct.id}`} accts={acct.subs} open={open} level={level + 1} />}
+      {hasSubs &&
+        <Collapse in={open} timeout="auto">
+          <List component="div" disablePadding>
+            <AcctItems accts={acct.subs} level={level + 1} />
+          </List>
+        </Collapse>}
     </Fragment>
   );
 });
-
-export const AcctAddButton = () => {
-  return (
-    <Fab color="primary" aria-label="add account" size="small" style={{position: "absolute", bottom: '1em', right: '1em'}}> 
-      <AddIcon />
-    </Fab>
-  );
-};
 
 export function AcctsList() {
   const classes = useListStyles();
@@ -142,82 +149,21 @@ export function AcctsList() {
       complete: () => setChart(undefined)
     });
     return () => subscrpt.unsubscribe();
-  }, []);
-  const onAllClick = () => {};
+  });
+  // no sel implies "all"
+  const onAllClick = useCallback(() => selacct.clear(), []); 
   return (
     <Fragment>
-      <List component="nav" className={classes.root}>
-        <ListItem button onClick={onAllClick}>
+      <List component="nav" className={classes.root} hidden={!chart}>
+        <ListItem key="all" button onClick={onAllClick}>
           <ListItemIcon>
             <ListAltIcon />
           </ListItemIcon>
           <ListItemText primary="Accounts" />
         </ListItem>
-        {chart?.map(a => <AcctItem key={a.id} acct={a} level={0} />)}
-        {/* <ListItem button>
-          <ListItemIcon>
-            <ListAltIcon />
-          </ListItemIcon>
-          <ListItemText primary="Accounts" />
-        </ListItem>
-        <ListItem button selected={true}>
-          <Checkbox size="small"/>
-          <ListItemIcon>
-            <SendIcon />
-          </ListItemIcon>
-          <ListItemText primary="Sent mail" />
-        </ListItem>
-        <ListItem button>
-        <Checkbox size="small" />
-          <ListItemIcon>
-            <DraftsIcon />
-          </ListItemIcon>
-          <ListItemText primary="Drafts" />
-        </ListItem>
-        <ListItem button onClick={handleClick}>
-          {open ? <ExpandLess /> : <ExpandMore />}
-          <ListItemText primary="Assets" onClick={e => {
-            e.stopPropagation();
-          }}/>
-          <div onClick={e => e.stopPropagation()}>
-            <DrCr amt={123.45} asCr />
-          </div>
-        </ListItem>
-        <Collapse in={open} timeout="auto">
-          <List component="div" disablePadding>
-            <ListItem button className={itemClasses.acct}>
-              <div style={{width: '24px'}}/>
-              <ListItemIcon style={{visibility: "hidden"}}>
-                <ExpandLess />
-              </ListItemIcon>
-              <div style={{width: '1em'}}/>
-              <Tooltip title="3100" arrow>
-                <ListItemText primary="Cash" />
-              </Tooltip>
-              <DrCr amt={123.45} asCr />
-              <div style={{width: '1em'}}/>
-            </ListItem>
-            <ListItem button className={itemClasses.acct}>
-              {open ? <ExpandLess /> : <ExpandMore />}
-              <ListItemText primary="Foo" />
-            </ListItem>
-            <Collapse in={open} timeout="auto" unmountOnExit>
-              <List component="div" disablePadding>
-                <ListItem button>
-                  <Checkbox size="small" />
-                  <ListItemIcon>
-                    <StarBorder />
-                  </ListItemIcon>
-                  <ListItemText primary="Hoo" />
-                  <DrCr amt={123.45} asCr />
-                  <ListItemText style={{textAlign: 'right', textDecoration: 'underline'}} primary="123.45" />
-                </ListItem>
-              </List>
-            </Collapse>
-          </List>
-        </Collapse> */}
+        {chart && <AcctItems accts={chart} level={0} />}
       </List>
-      <AcctAddButton />
+      <AcctAddButton innerProps={{style: {position: "absolute", bottom: '1em', right: '1em'}}} />
     </Fragment>
 );
 }
