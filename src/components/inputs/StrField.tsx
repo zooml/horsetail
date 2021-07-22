@@ -23,10 +23,12 @@ const StrField = ({formCtl, limit, label, noHint, fieldProps}: Props) => {
     const isValid = validStr(limit, false, v);
     if (v) { // non-empty: display error
       setIsError(!isValid);
+      if (isValid) formCtl.onValueValid(limit.name, v);
+      else formCtl.onValueInvalid(limit.name);
     } else { // empty: don't display if error (it's obvious to user)
       setIsError(false);
+      formCtl.onValueEmpty(limit.name);
     }
-    formCtl.onValueChg(limit.name, isValid ? v : undefined);
   };
   const inputProps: {[k: string]: any} = {
     maxLength: limit.max

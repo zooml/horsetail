@@ -2,7 +2,7 @@ import { createStyles, Drawer, Hidden, makeStyles, Theme, Toolbar, useTheme } fr
 import { useState } from "react";
 import { AcctsList } from "./AcctsList";
 
-const drawerWidth = 240;
+const drawerWidth = 280;
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
     root: {

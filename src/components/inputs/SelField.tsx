@@ -20,15 +20,12 @@ type Props = {
   label?: string;
 };
 
-const findFirstVal = (chs: Choice[], chDis?: ChDis) => 
-  chs.find(c => !chDis || (chDis[c[0]] ?? true));
-
 const genChoices = (limit: ChoiceLimit) =>
   Object.entries(limit.choices).map(vl => [toInt(vl[0]), vl[1]] as Choice).sort((vl0, vl1) => vl0[0] - vl1[0]);
 
 const SelField = ({formCtl, limit, value, rdo, chDis, label}: Props) => {
   const [choices,] = useState(genChoices(limit));
-  const [val, setVal] = useState(value ?? findFirstVal(choices, chDis));
+  const [val, setVal] = useState<number | undefined>(value);
   useEffect(() => {
     if (rdo) return;
     formCtl.addField(limit.name, false);
@@ -37,11 +34,11 @@ const SelField = ({formCtl, limit, value, rdo, chDis, label}: Props) => {
   const onChange = (e: ChangeEvent<HTMLInputElement>) => {
     const v = toInt(e.target.value);
     setVal(v);
-    formCtl.onValueChg(limit.name, v);
+    formCtl.onValueValid(limit.name, v);
   };
   return (
     <TextField select label={label ?? toCap(limit.name)}
-      value={val} onChange={onChange}
+      value={val} onChange={onChange} required={!rdo}
       disabled={rdo} helperText={rdo ? '' : limit.hint}>
       {choices.map(ch =>
         <MenuItem key={ch[0]} value={ch[0]}
