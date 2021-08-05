@@ -9,6 +9,7 @@ import * as org from './org';
 import { CATEGORIES, Category, CAT_IDS, Get, CloseGet, Post } from '../api/accounts';
 import { fromDate, toDate, today } from '../utils/clndate';
 import GlbState, { checkPostState } from './glbstate';
+import binsrch from '../utils/binsrch';
 
 export type CloseMdl = CloseGet;
 const fromCloseGet = (g: CloseGet): CloseMdl => g;
@@ -16,6 +17,7 @@ const fromCloseGet = (g: CloseGet): CloseMdl => g;
 export type Chg = {
   num?: number;
   name?: string;
+  desc?: descs.Chg;
 };
 export type Mdl = mdl.Rsc<Chg> & {
   oId: string;
@@ -37,7 +39,7 @@ export type MdlPost = {
   num: number;
   name: string;
   begAt?: Date;
-  desc?: descs.Mdl;
+  desc?: descs.MdlPost;
   sum?: Mdl; // missing if general acct
   cat?: Category;
   isCr?: boolean;
@@ -87,19 +89,11 @@ const cmpl = (m: Mdl) => {
   mdl.cmpl(m);
 };
 
+const cmp = (m0: Mdl, m1: Mdl) => m0.num - m1.num;
+
 const addToArray = (acct: Mdl, arr: mdl.Arr<Mdl>, init?: boolean) => {
-  // scan O(n**2) OK as there will not be many children
-  for(let i = 0; i < arr.length; ++i) {
-    const a = arr[i];
-    if (a.num === acct.num) throw new Error(`account ${acct.id}: duplicate number: ${acct.num}`);
-    if (acct.num < a.num) {
-      if (init) arr.splice(i, 0, acct);
-      else mdl.addToMdl(arr, acct, i);
-      return;
-    }
-  }
-  if (init) arr.push(acct);
-  else mdl.addToMdl(arr, acct, -1);
+  if (init) arr.splice(binsrch(arr, acct, cmp), 0, acct);
+  else mdl.add(arr, acct, cmp);
 };
 
 const initAcct = (acct: Mdl, sum?: Mdl) => {
@@ -164,13 +158,8 @@ let curOrg: org.Mdl | undefined;
 let state = new GlbState<Chart>('chart');
 let postAck$: Subject<void> | undefined;
 
-const hdrs = () => {
-  if (!curOrg) throw new Error('account: missing current org');
-  return {'X-OId': curOrg.id};
-}
-
 // returns stream containing current chart, or that will contain
-// chart after call to org.set(id)/load(), and successful get of accounts
+// chart after call to org.set(id), and successful get of accounts
 // does not report errors, completes on org clear
 export const get$ = (): ReplaySubject<Chart> => {
   if (!state.mdl && !state.ack$) {
@@ -178,7 +167,7 @@ export const get$ = (): ReplaySubject<Chart> => {
     org.get$().subscribe({
       next: org => {
         curOrg = org;
-        state.subscpt = ajax.getJSON<Get[]>(`${baseUrl}/accounts`, hdrs())
+        state.subscpt = ajax.getJSON<Get[]>(`${baseUrl}/accounts`, mdl.hdrs(curOrg.id))
           .pipe(retrier())
           .subscribe({
             next: gs => state.next(chartFromGets(gs)),
@@ -197,9 +186,9 @@ export const get$ = (): ReplaySubject<Chart> => {
 }
 
 export const post = (mp: MdlPost) => {
-  checkPostState('account', state, postAck$);
+  checkPostState(state, postAck$);
   postAck$ = new Subject();
-  const subscpt = ajax.post<Get>(`${baseUrl}/accounts`, toPost(mp), hdrs())
+  const subscpt = ajax.post<Get>(`${baseUrl}/accounts`, toPost(mp), mdl.hdrs(curOrg?.id))
     .pipe(retrier())
     .subscribe({
       next: rsp => {
@@ -216,7 +205,7 @@ export const post = (mp: MdlPost) => {
       }
     });
   return postAck$;
-}
+};
 
 export const patch = (acct: Mdl, patch: Chg) => {
   const before: Chg = {};

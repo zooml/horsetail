@@ -1,4 +1,4 @@
-import { Fragment, memo, useEffect, useState, MouseEvent } from 'react';
+import { Fragment, memo, useEffect, useState } from 'react';
 import { makeStyles, Theme, createStyles } from '@material-ui/core/styles';
 import List from '@material-ui/core/List';
 import ListItem from '@material-ui/core/ListItem';
@@ -45,8 +45,11 @@ const useItemStyles = makeStyles((theme: Theme) =>
       // backgroundColor: theme.palette.primary.light,
       // color: theme.palette.primary.contrastText,
       // if !hasSubs add 24px
-      paddingLeft: 0, // theme.spacing(1 + level),
-      paddingRight: 0, //theme.spacing(0)
+      marginLeft: level + 'em',
+      paddingLeft: '.5em',
+      paddingRight: level + .5 + 'em', // make look like tab for txndocs list
+      borderTopLeftRadius: '1em',
+      borderBottomLeftRadius: '1em'
     }),
     // acctNum: {
     //   marginLeft: theme.spacing(1.5),
@@ -108,7 +111,10 @@ const AcctItem = memo(({acct, level}: AcctItemProps) => {
     });
     return () => subscrpt.unsubscribe();
   }, [acct.subs]);
-  const tglOpen = useCallback(() => setOpen(!open), [open]);
+  const tglOpen = useCallback(e => {
+    setOpen(!open);
+    e.stopPropagation(); 
+  }, [open]);
   const onClick = useCallback(() => {
     if (selacct.set(acct)) { // new selection
       setSel(true);
@@ -142,11 +148,20 @@ const AcctItem = memo(({acct, level}: AcctItemProps) => {
 
 export function AcctsList() {
   const classes = useListStyles();
+  const classesItem = useItemStyles({level: 0});
   const [chart, setChart] = useState<account.Chart | undefined>();
+  const [sel, setSel] = useState(true);
   useEffect(() => {
     const subscrpt = account.get$().subscribe({
       next: chart => setChart(chart),
       complete: () => setChart(undefined)
+    });
+    return () => subscrpt.unsubscribe();
+  });
+  useEffect(() => {
+    const subscrpt = selacct.get$().subscribe({
+      next: () => setSel(false),
+      complete: () => setSel(true),
     });
     return () => subscrpt.unsubscribe();
   });
@@ -155,7 +170,9 @@ export function AcctsList() {
   return (
     <Fragment>
       <List component="nav" className={classes.root} hidden={!chart}>
-        <ListItem key="all" button onClick={onAllClick}>
+        <ListItem key="all" button onClick={onAllClick}
+          selected={sel} 
+          className={classesItem.root}>
           <ListItemIcon>
             <ListAltIcon />
           </ListItemIcon>

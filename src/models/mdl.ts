@@ -2,6 +2,7 @@ import { Subject } from "rxjs";
 import { Get } from '../api/base';
 import { toDate } from "../utils/clndate";
 import { isArr } from "../common/validators";
+import binsrch, { Cmp } from "../utils/binsrch";
 
 const chg$Name = 'chg$';
 
@@ -71,8 +72,9 @@ export type ArrChg<T> = {
   reord?: boolean;
 };
 export type Arr<T> = Array<T> & Chgable<ArrChg<T>>;
-export const makeArr = <S, T>(items: S[], f: (s: S) => T): Arr<T> => {
-  const arr = items.map(f);
+export const makeArr = <S, T>(items: S[], f: (s: S) => T): Arr<T> => blessArr(items.map(f));
+export const makeEmptyArr = <T>(): Arr<T> => blessArr<T>([]);
+export const blessArr = <T>(arr: T[]): Arr<T> => {
   (arr as Arr<T>).chg$ = new Subject<ArrChg<T>>();
   return arr as Arr<T>;
 };
@@ -86,14 +88,13 @@ export const arrCmpl = <T>(m: Arr<T>, tCmpl?: (t: T) => void) => {
   cmpl(m);
 }
 
-export function addToMdl<T>(m: Hash<T>, itm: any, k: string): void;
-export function addToMdl<T>(m: Arr<T>, itm: any, i: number): void; // -1 for end
-export function addToMdl<T>(m: Hash<T> | Arr<T>, itm: any, k: string | number): void {
+export function add<T>(m: Hash<T>, itm: any, k: string): void;
+export function add<T>(m: Arr<T>, itm: any, cmp: Cmp<T>): void; // -1 for end
+export function add<T>(m: Hash<T> | Arr<T>, itm: any, k: string | Cmp<T>): void {
   if (isArr(m)) {
     const a = m as Arr<T>;
-    let i = k as number;
-    if (i < 0) {i = a.length; a.push(itm);}
-    else a.splice(i, 0, itm);
+    const i = binsrch(a as T[], itm, (k as Cmp<T>));
+    a.splice(i, 0, itm);
     a.chg$.next({add: [i, itm]});
   } else {
     const o = m as Hash<T>;
@@ -103,9 +104,9 @@ export function addToMdl<T>(m: Hash<T> | Arr<T>, itm: any, k: string | number): 
   }
 };
 
-export function remFromMdl<T>(m: Hash<T>, k: string): void;
-export function remFromMdl<T>(m: Arr<T>, i: number): void;
-export function remFromMdl<T>(m: Hash<T>| Arr<T>, k: string | number): void {
+export function rem<T>(m: Hash<T>, k: string): void;
+export function rem<T>(m: Arr<T>, i: number): void;
+export function rem<T>(m: Hash<T>| Arr<T>, k: string | number): void {
   if (isArr(m)) {
     const a = m as Arr<T>;
     const i = k as number;
@@ -118,4 +119,9 @@ export function remFromMdl<T>(m: Hash<T>| Arr<T>, k: string | number): void {
     delete o[key];
     o.chg$.next({rem: itm});
   }
+};
+
+export const hdrs = (curOrgId: string | undefined) => {
+  if (!curOrgId) throw new Error('account: missing current org');
+  return {'X-OId': curOrgId};
 };

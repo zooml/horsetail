@@ -1,23 +1,25 @@
 import { CastError, DayBegError, FmtError, MaxError, MinError, MissingError, ValueError } from "./apperrs";
-import { BoolLimit, ChoiceLimit, DateLimit, NumLimit, StrLimit } from "./limits";
+import { BoolLimit, ChoiceLimit, CurrencyLimit, DateLimit, NumLimit, StrLimit } from "./limits";
 
 export const isStr = (v: any) => typeof v === 'string';
-export const isNum = (v: any) => typeof v === 'number';
+export const isNum = (v: any) => (typeof v === 'number') && !isNaN(v);
 export const isDate = (v: any) => v instanceof Date;
 export const isArr = (v: any) => Array.isArray(v);
 export const isObj = (v: any) => Object.prototype.toString.call(v) === '[object Object]';
 
-export const toInt = (v: string): number => {
+export const toInt = (v: string, path?: string): number => {
   const i = Number(v);
-  return isNaN(i) ? NaN : (Math.floor(i) === i ? i : NaN);
+  const n = isNaN(i) ? NaN : (Math.floor(i) === i ? i : NaN);
+  if (isNaN(n) && path) throw new CastError(path, v);
+  return n;
 }
 export const toCap = (v: string): string => {
   if (!v) return v;
   return v.charAt(0).toLocaleUpperCase().concat(v.slice(1));
 };
 
-const sUtcDayBegSuffix = '00:00:00.000Z';
-const validDayBeg = (v: Date) => v.toISOString().endsWith(sUtcDayBegSuffix);
+const DAY_BEG_SUFFIX = '00:00:00.000Z';
+const validDayBeg = (v: Date) => v.toISOString().endsWith(DAY_BEG_SUFFIX);
 
 export const validStr = (lim: StrLimit, thro: boolean, v: any) => {
   if (!v) { // '' or undefined is OK only if min === 0
@@ -98,6 +100,19 @@ export const validDate = (lim: DateLimit, thro: boolean, v: any) => {
   }
   if (lim.dayBeg && !validDayBeg(v)) {
     if (thro) throw new DayBegError(lim.name);
+    return false;
+  }
+  return true;
+};
+
+export const validCurrency = (lim: CurrencyLimit, thro: boolean, v: any) => {
+  if (v === undefined) {
+    if (!lim.req) return true;
+    if (thro) throw new MissingError(lim.name);
+    return false;
+  }
+  if (!isNum(v)) {
+    if (thro) throw new CastError(lim.name, v);
     return false;
   }
   return true;

@@ -1,4 +1,4 @@
-const sUtcDayBegSuffix = '00:00:00.000Z';
+const DAY_BEG_SUFFIX = '00:00:00.000Z';
 
 export const today = () => {
   const d = new Date();
@@ -18,6 +18,6 @@ export const fromDate = (d: Date) => {
   // translate local time to UTC with exact same y/m/d
   const m = d.getMonth();
   const a = d.getDate();
-  const s = `${d.getFullYear()}-${m < 10 ? '0' + m : m}-${a < 10 ? '0' + a : a}T${sUtcDayBegSuffix}`;
+  const s = `${d.getFullYear()}-${m < 10 ? '0' + m : m}-${a < 10 ? '0' + a : a}T${DAY_BEG_SUFFIX}`;
   return new Date(s).getTime();
 };

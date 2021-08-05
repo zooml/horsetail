@@ -37,8 +37,11 @@ export const GlobalCss = withStyles({
     '.MuiToolbar-regular': { // need since it somehow changes to 64 with drawer out
       minHeight: '56px',
     },
-    '.MuiListItemIcon-root': {  // for menus
-      minWidth: '30px'
+    '.MuiListItemIcon-root': {  // for menus X, acct list items
+      minWidth: 0
+    },
+    '.MuiListItemText-root': {  // for acct list items
+      paddingLeft: '.5em'
     },
     '.MuiButton-endIcon': {
       marginLeft: 0

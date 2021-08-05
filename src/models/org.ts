@@ -211,7 +211,7 @@ export const set = (id: string): Subject<void> => {
 // is no current org it will make it the current org (i.e. push into the stream)
 // returns an ack$ that will report error or success (complete)
 export const post = (mp: MdlPost): Subject<void> => {
-  checkPostState('org', tmsState, postAck$);
+  checkPostState(tmsState, postAck$);
   if (mState.ack$) return ackError('org: invalid state, another operation in progress');
   postAck$ = new Subject();
   const subscpt = ajax.post<Get>(`${baseUrl}/orgs`, toPost(mp))
@@ -225,7 +225,7 @@ export const post = (mp: MdlPost): Subject<void> => {
         // make newly created org the set() org
         clear();
         const tm = tldrFromGet(g);
-        mdl.addToMdl(tmsState.mdl!, tm, tm.id); // tmsState checked in checkPostState      
+        mdl.add(tmsState.mdl!, tm, tm.id); // tmsState checked in checkPostState      
         mState.ack$ = tmp$;
         mState.next(fromGet(g));
       },
